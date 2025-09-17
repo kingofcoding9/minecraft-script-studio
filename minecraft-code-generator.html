@@ -70,6 +70,19 @@
         }
         .sub-section { border-left: 2px solid #4b5563; padding-left: 1rem; margin-top: 1rem; }
         .action-container { border-left: 2px solid #6b7280; padding-left: 1rem; margin-left: 0.5rem; margin-top: 0.5rem;}
+        #texture-canvas-container {
+            background-image: 
+                linear-gradient(45deg, #4b5563 25%, transparent 25%), 
+                linear-gradient(-45deg, #4b5563 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #4b5563 75%),
+                linear-gradient(-45deg, transparent 75%, #4b5563 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        .layer-item.active {
+            background-color: #10b981;
+            color: white;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-300">
@@ -99,6 +112,7 @@
                     <li><a href="#builder-client-entity" class="nav-link block py-2 px-3 rounded hover:bg-gray-700">Client Entity Builder</a></li>
                     <li><a href="#builder-items" class="nav-link block py-2 px-3 rounded hover:bg-gray-700">Item Builder</a></li>
                     <li><a href="#builder-blocks" class="nav-link block py-2 px-3 rounded hover:bg-gray-700">Block Builder</a></li>
+                    <li><a href="#builder-texture-creator" class="nav-link block py-2 px-3 rounded hover:bg-gray-700">Texture Creator</a></li>
                     <li><a href="#builder-recipes" class="nav-link block py-2 px-3 rounded hover:bg-gray-700">Recipe Builder</a></li>
                     <li><a href="#builder-spawn-rules" class="nav-link block py-2 px-3 rounded hover:bg-gray-700">Spawn Rule Builder</a></li>
                     <li><a href="#builder-loot-tables" class="nav-link block py-2 px-3 rounded hover:bg-gray-700">Loot Table Builder</a></li>
@@ -145,6 +159,93 @@
                  <a href="https://discord.gg/xMy34mQCJ3" target="_blank" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
                      Join Discord
                  </a>
+            </div>
+        </div>
+    </template>
+
+    <template id="template-builder-texture-creator">
+        <div id="page-builder-texture-creator" class="page">
+            <h2 class="text-3xl font-bold mb-4 border-b-2 border-emerald-500 pb-2 text-white">Texture Creator</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- Tools & Options -->
+                <div class="space-y-4">
+                     <div class="builder-section p-4 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2 text-gray-100">Canvas Size</h3>
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <div>
+                                <label for="canvas-width" class="text-sm">Width</label>
+                                <input type="number" id="canvas-width" value="16" min="1" max="128" class="builder-input w-full p-2 rounded mt-1">
+                            </div>
+                             <div>
+                                <label for="canvas-height" class="text-sm">Height</label>
+                                <input type="number" id="canvas-height" value="16" min="1" max="128" class="builder-input w-full p-2 rounded mt-1">
+                            </div>
+                        </div>
+                        <div class="flex items-center mt-3">
+                             <input type="checkbox" id="aspect-ratio-lock" checked class="h-4 w-4 rounded">
+                             <label for="aspect-ratio-lock" class="ml-2 text-sm">Lock Proportions</label>
+                        </div>
+                         <button id="resize-canvas-btn" class="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded">Apply Size</button>
+                    </div>
+
+                    <div class="builder-section p-4 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2 text-gray-100">Tools</h3>
+                        <div class="grid grid-cols-4 gap-2 text-center" id="tool-palette">
+                            <button data-tool="pencil" class="p-2 rounded bg-emerald-600 tool-btn" title="Pencil">✏️</button>
+                            <button data-tool="eraser" class="p-2 rounded bg-gray-600 hover:bg-gray-700 tool-btn" title="Eraser">🧼</button>
+                            <button data-tool="fill" class="p-2 rounded bg-gray-600 hover:bg-gray-700 tool-btn" title="Fill Bucket">💧</button>
+                            <button data-tool="picker" class="p-2 rounded bg-gray-600 hover:bg-gray-700 tool-btn" title="Color Picker">🎨</button>
+                        </div>
+                    </div>
+                     <div class="builder-section p-4 rounded-lg">
+                         <h3 class="font-bold text-lg mb-2 text-gray-100">Brush Settings</h3>
+                         <div>
+                             <label for="brush-size" class="text-sm">Size: <span id="brush-size-value">1</span>px</label>
+                             <input type="range" id="brush-size" min="1" max="32" value="1" class="w-full">
+                         </div>
+                         <div class="mt-2">
+                             <label for="brush-opacity" class="text-sm">Opacity: <span id="brush-opacity-value">100</span>%</label>
+                             <input type="range" id="brush-opacity" min="1" max="100" value="100" class="w-full">
+                         </div>
+                    </div>
+                    
+                    <div class="builder-section p-4 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2 text-gray-100">Color</h3>
+                        <input type="color" id="color-picker" value="#ff0000" class="w-full h-12 p-1 rounded cursor-pointer">
+                         <div id="color-history" class="grid grid-cols-8 gap-1 mt-2"></div>
+                    </div>
+                </div>
+
+                 <!-- Canvas Area -->
+                <div class="lg:col-span-2 bg-gray-800 p-4 rounded-lg flex items-center justify-center" id="texture-canvas-container">
+                     <canvas id="texture-canvas" class="cursor-crosshair" style="width: 100%; max-width: 512px; aspect-ratio: 1/1; image-rendering: pixelated;"></canvas>
+                </div>
+                
+                 <!-- Layers & Export -->
+                 <div class="space-y-4">
+                     <div class="builder-section p-4 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2 text-gray-100">Layers</h3>
+                        <div id="layers-container" class="space-y-1 max-h-64 overflow-y-auto"></div>
+                        <div class="flex gap-2 mt-2">
+                            <button id="add-layer-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 text-sm rounded">Add</button>
+                            <button id="delete-layer-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-2 text-sm rounded">Delete</button>
+                        </div>
+                    </div>
+
+                     <div class="builder-section p-4 rounded-lg">
+                         <h3 class="font-bold text-lg mb-2 text-gray-100">Options</h3>
+                         <div class="flex items-center">
+                             <input type="checkbox" id="grid-toggle" checked class="h-4 w-4 rounded">
+                             <label for="grid-toggle" class="ml-2 text-sm">Show Pixel Grid</label>
+                        </div>
+                    </div>
+
+                    <div class="builder-section p-4 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2 text-gray-100">Export</h3>
+                        <button id="export-png-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">Download as PNG</button>
+                    </div>
+                 </div>
+
             </div>
         </div>
     </template>
@@ -468,6 +569,7 @@
             'builder-entities': { title: 'Entity Builder', definitions: entityComponentDefinitions, generate: generateEntityJson },
             'builder-items': { title: 'Item Builder', definitions: itemComponentDefinitions, generate: generateComponentJson },
             'builder-blocks': { title: 'Block Builder', definitions: blockComponentDefinitions, generate: generateBlockJson },
+            'builder-texture-creator': { title: 'Texture Creator', custom: true, init: initializeTextureCreator },
             'builder-client-entity': { title: 'Client Entity Builder', generate: generateClientEntityJson },
             'builder-recipes': { title: 'Recipe Builder', generate: generateRecipeJson },
             'builder-spawn-rules': { title: 'Spawn Rule Builder', generate: generateSpawnRuleJson },
@@ -1066,6 +1168,12 @@
         function initializePage(builderId, config) {
             const form = document.getElementById(`${builderId}-form`);
             if (!form) return;
+
+            if (config.custom && config.init) {
+                // For custom builders like the texture creator
+                config.init();
+                return;
+            }
 
             if (builderId === 'builder-entities') {
                 initializeEntityBuilder(form);
@@ -1898,6 +2006,358 @@
 
             document.getElementById(`${builderId}-code-output`).textContent = JSON.stringify(tempObj, null, 2);
         }
+        
+        // --- TEXTURE CREATOR LOGIC ---
+        function initializeTextureCreator() {
+            const canvas = document.getElementById('texture-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            let widthInput = document.getElementById('canvas-width');
+            let heightInput = document.getElementById('canvas-height');
+            const aspectRatioLock = document.getElementById('aspect-ratio-lock');
+            const resizeBtn = document.getElementById('resize-canvas-btn');
+            const toolPalette = document.getElementById('tool-palette');
+            const colorPicker = document.getElementById('color-picker');
+            const gridToggle = document.getElementById('grid-toggle');
+            const exportBtn = document.getElementById('export-png-btn');
+            const brushSizeSlider = document.getElementById('brush-size');
+            const brushSizeValue = document.getElementById('brush-size-value');
+            const brushOpacitySlider = document.getElementById('brush-opacity');
+            const brushOpacityValue = document.getElementById('brush-opacity-value');
+            const layersContainer = document.getElementById('layers-container');
+            const addLayerBtn = document.getElementById('add-layer-btn');
+            const deleteLayerBtn = document.getElementById('delete-layer-btn');
+            const colorHistoryContainer = document.getElementById('color-history');
+            
+            let state = {
+                width: 16,
+                height: 16,
+                isDrawing: false,
+                currentTool: 'pencil',
+                currentColor: '#ff0000',
+                showGrid: true,
+                brushSize: 1,
+                brushOpacity: 1, // 0 to 1
+                layers: [],
+                activeLayerIndex: 0,
+                colorHistory: []
+            };
+
+            const hexToRgba = (hex, alpha = 1) => {
+                let r = 0, g = 0, b = 0;
+                if (hex.length == 7) {
+                    r = parseInt(hex.substring(1, 3), 16);
+                    g = parseInt(hex.substring(3, 5), 16);
+                    b = parseInt(hex.substring(5, 7), 16);
+                } else if (hex.length == 4) {
+                    r = parseInt(hex[1] + hex[1], 16);
+                    g = parseInt(hex[2] + hex[2], 16);
+                    b = parseInt(hex[3] + hex[3], 16);
+                }
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            };
+
+            const compositeLayers = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                state.layers.forEach(layer => {
+                    if (layer.visible) {
+                        ctx.drawImage(layer.canvas, 0, 0);
+                    }
+                });
+            };
+
+            const drawGrid = () => {
+                if (!state.showGrid || state.width > 64) return; // Hide grid if too dense
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 1;
+                 for (let x = 0; x <= state.width; x++) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, state.height);
+                    ctx.stroke();
+                }
+                 for (let y = 0; y <= state.height; y++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(state.width, y);
+                    ctx.stroke();
+                }
+            };
+            
+            const redraw = () => {
+                compositeLayers();
+                if (state.showGrid) {
+                    drawGrid();
+                }
+            };
+
+             const resizeCanvas = () => {
+                let newWidth = parseInt(widthInput.value);
+                let newHeight = parseInt(heightInput.value);
+                
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                
+                state.layers.forEach(layer => {
+                     const tempCanvas = document.createElement('canvas');
+                     tempCanvas.width = layer.canvas.width;
+                     tempCanvas.height = layer.canvas.height;
+                     const tempCtx = tempCanvas.getContext('2d');
+                     tempCtx.drawImage(layer.canvas, 0, 0);
+                     
+                     layer.canvas.width = newWidth;
+                     layer.canvas.height = newHeight;
+                     const layerCtx = layer.canvas.getContext('2d');
+                     layerCtx.imageSmoothingEnabled = false;
+                     layerCtx.drawImage(tempCanvas, 0, 0);
+                });
+
+                state.width = newWidth;
+                state.height = newHeight;
+                redraw();
+            };
+
+            const getMousePos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = Math.floor((e.clientX - rect.left) * scaleX);
+                const y = Math.floor((e.clientY - rect.top) * scaleY);
+                return { x, y };
+            };
+
+            const drawOnLayer = (x, y) => {
+                if(state.activeLayerIndex < 0) return;
+                const layer = state.layers[state.activeLayerIndex];
+                const layerCtx = layer.canvas.getContext('2d');
+                layerCtx.imageSmoothingEnabled = false;
+
+                const startX = x - Math.floor(state.brushSize / 2);
+                const startY = y - Math.floor(state.brushSize / 2);
+
+                if (state.currentTool === 'pencil') {
+                     layerCtx.fillStyle = hexToRgba(state.currentColor, state.brushOpacity);
+                     layerCtx.fillRect(startX, startY, state.brushSize, state.brushSize);
+                } else if (state.currentTool === 'eraser') {
+                    layerCtx.clearRect(startX, startY, state.brushSize, state.brushSize);
+                }
+                redraw();
+            };
+            
+            const floodFill = (startX, startY) => {
+                 if(state.activeLayerIndex < 0) return;
+                const layer = state.layers[state.activeLayerIndex];
+                const layerCtx = layer.canvas.getContext('2d');
+                const imageData = layerCtx.getImageData(0, 0, state.width, state.height);
+                const startPixel = (startY * state.width + startX) * 4;
+                const startRgba = [
+                    imageData.data[startPixel],
+                    imageData.data[startPixel + 1],
+                    imageData.data[startPixel + 2],
+                    imageData.data[startPixel + 3]
+                ];
+                
+                const newRgba = hexToRgba(state.currentColor, 1).match(/\d+/g).map(Number);
+                if (colorsMatch(startRgba, newRgba)) return;
+
+                const pixelStack = [[startX, startY]];
+                while (pixelStack.length) {
+                    const [x, y] = pixelStack.pop();
+                    if (x < 0 || x >= state.width || y < 0 || y >= state.height) continue;
+                    
+                    const index = (y * state.width + x) * 4;
+                    const currentRgba = [imageData.data[index], imageData.data[index + 1], imageData.data[index + 2], imageData.data[index + 3]];
+
+                    if (colorsMatch(currentRgba, startRgba)) {
+                        imageData.data[index] = newRgba[0];
+                        imageData.data[index + 1] = newRgba[1];
+                        imageData.data[index + 2] = newRgba[2];
+                        imageData.data[index + 3] = newRgba[3];
+                        
+                        pixelStack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+                    }
+                }
+                layerCtx.putImageData(imageData, 0, 0);
+                redraw();
+            };
+
+            const colorsMatch = (a, b) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+            const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+
+            const addToColorHistory = (color) => {
+                if (state.colorHistory.includes(color)) {
+                     state.colorHistory = state.colorHistory.filter(c => c !== color);
+                }
+                state.colorHistory.unshift(color);
+                if (state.colorHistory.length > 16) {
+                    state.colorHistory = state.colorHistory.slice(0, 16);
+                }
+                renderColorHistory();
+            };
+            
+            const renderColorHistory = () => {
+                colorHistoryContainer.innerHTML = '';
+                state.colorHistory.forEach(color => {
+                    const swatch = document.createElement('div');
+                    swatch.className = 'w-6 h-6 rounded border border-gray-600 cursor-pointer';
+                    swatch.style.backgroundColor = color;
+                    swatch.addEventListener('click', () => {
+                        colorPicker.value = color;
+                        state.currentColor = color;
+                    });
+                    colorHistoryContainer.appendChild(swatch);
+                });
+            };
+
+            const renderLayers = () => {
+                layersContainer.innerHTML = '';
+                state.layers.forEach((layer, index) => {
+                    const item = document.createElement('div');
+                    item.className = `layer-item flex justify-between items-center p-2 rounded cursor-pointer ${index === state.activeLayerIndex ? 'active' : 'hover:bg-gray-600'}`;
+                    item.dataset.index = index;
+                    item.textContent = layer.name;
+                    item.addEventListener('click', () => {
+                        state.activeLayerIndex = index;
+                        renderLayers();
+                    });
+                    layersContainer.appendChild(item);
+                });
+            };
+            
+            const addNewLayer = () => {
+                const newCanvas = document.createElement('canvas');
+                newCanvas.width = state.width;
+                newCanvas.height = state.height;
+                const newCtx = newCanvas.getContext('2d');
+                newCtx.imageSmoothingEnabled = false;
+                
+                state.layers.push({
+                    name: `Layer ${state.layers.length + 1}`,
+                    canvas: newCanvas,
+                    visible: true
+                });
+                state.activeLayerIndex = state.layers.length - 1;
+                renderLayers();
+            };
+
+            const deleteActiveLayer = () => {
+                if (state.layers.length <= 1) return;
+                state.layers.splice(state.activeLayerIndex, 1);
+                state.activeLayerIndex = Math.max(0, state.activeLayerIndex - 1);
+                renderLayers();
+                redraw();
+            };
+
+            // Event Listeners
+            canvas.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                state.isDrawing = true;
+                const { x, y } = getMousePos(e);
+                
+                if (state.currentTool === 'fill') {
+                    floodFill(x, y);
+                    addToColorHistory(state.currentColor);
+                    return;
+                } else if (state.currentTool === 'picker') {
+                    const layer = state.layers[state.activeLayerIndex];
+                    if(!layer) return;
+                    const pixel = layer.canvas.getContext('2d').getImageData(x, y, 1, 1).data;
+                    if(pixel[3] > 0) { // not transparent
+                        const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
+                        colorPicker.value = hex;
+                        state.currentColor = hex;
+                    }
+                    return;
+                }
+                
+                drawOnLayer(x, y);
+            });
+            canvas.addEventListener('mousemove', (e) => {
+                if (!state.isDrawing) return;
+                 const { x, y } = getMousePos(e);
+                drawOnLayer(x, y);
+            });
+             canvas.addEventListener('mouseup', () => {
+                if(state.isDrawing && state.currentTool === 'pencil') {
+                    addToColorHistory(state.currentColor);
+                }
+                state.isDrawing = false
+            });
+            canvas.addEventListener('mouseleave', () => state.isDrawing = false);
+
+            toolPalette.addEventListener('click', (e) => {
+                const toolButton = e.target.closest('.tool-btn');
+                if (toolButton) {
+                    toolPalette.querySelectorAll('.tool-btn').forEach(btn => btn.classList.replace('bg-emerald-600', 'bg-gray-600'));
+                    toolButton.classList.replace('bg-gray-600', 'bg-emerald-600');
+                    state.currentTool = toolButton.dataset.tool;
+                }
+            });
+
+            colorPicker.addEventListener('change', (e) => {
+                state.currentColor = e.target.value;
+                addToColorHistory(e.target.value);
+            });
+            
+            gridToggle.addEventListener('change', (e) => {
+                state.showGrid = e.target.checked;
+                redraw();
+            });
+
+            let aspectRatio = 1;
+            widthInput.addEventListener('input', () => {
+                if (aspectRatioLock.checked) {
+                    heightInput.value = Math.round(widthInput.value / aspectRatio);
+                }
+            });
+            heightInput.addEventListener('input', () => {
+                if (aspectRatioLock.checked) {
+                    widthInput.value = Math.round(heightInput.value * aspectRatio);
+                }
+            });
+             aspectRatioLock.addEventListener('change', (e) => {
+                if(e.target.checked) {
+                    aspectRatio = widthInput.value / heightInput.value || 1;
+                }
+            });
+
+            resizeBtn.addEventListener('click', () => resizeCanvas());
+            exportBtn.addEventListener('click', () => {
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = state.width;
+                finalCanvas.height = state.height;
+                const finalCtx = finalCanvas.getContext('2d');
+                finalCtx.imageSmoothingEnabled = false;
+                state.layers.forEach(layer => {
+                    if (layer.visible) {
+                        finalCtx.drawImage(layer.canvas, 0, 0);
+                    }
+                });
+
+                const link = document.createElement('a');
+                link.download = 'my_texture.png';
+                link.href = finalCanvas.toDataURL('image/png');
+                link.click();
+            });
+
+            brushSizeSlider.addEventListener('input', (e) => {
+                state.brushSize = parseInt(e.target.value);
+                brushSizeValue.textContent = state.brushSize;
+            });
+            brushOpacitySlider.addEventListener('input', (e) => {
+                state.brushOpacity = parseInt(e.target.value) / 100;
+                brushOpacityValue.textContent = e.target.value;
+            });
+            
+            addLayerBtn.addEventListener('click', addNewLayer);
+            deleteLayerBtn.addEventListener('click', deleteActiveLayer);
+
+            // Initial setup
+            addNewLayer();
+            resizeCanvas();
+            addToColorHistory('#ff0000');
+            addToColorHistory('#000000');
+        }
 
         // --- MAIN INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -1912,6 +2372,14 @@
 
                 const genericBuilderTemplate = document.getElementById('template-builder-generic');
                 for (const [id, config] of Object.entries(builders)) {
+                     if (config.custom) { // Handle custom templates
+                        const customTemplate = document.getElementById(`template-${id}`);
+                        if(customTemplate) {
+                            mainContent.appendChild(customTemplate.content.cloneNode(true));
+                            config.init();
+                        }
+                        continue;
+                    }
                     const builderClone = genericBuilderTemplate.content.cloneNode(true);
                     const page = builderClone.querySelector('.page');
                     page.id = `page-${id}`;
