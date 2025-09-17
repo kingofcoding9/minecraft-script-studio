@@ -128,10 +128,11 @@
 
     <script type="module">
         const apiData = {
-            "@minecraft/server": {
+            // ... [The extensive apiData object from the previous turn, including all modules and classes]
+             "@minecraft/server": {
                 icon: "fa-solid fa-server",
                 classes: {
-                    "World": {
+                    "world": {
                         icon: "fa-solid fa-globe",
                         methods: {
                              "sendMessage": {
@@ -157,6 +158,27 @@
                                 docs: "Returns an entity based on its unique identifier.",
                                 params: [{ name: "id", type: "string", docs: "The unique ID of the entity." }],
                                 template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.id}");\nif (entity) {\n    console.log("Found entity of type: " + entity.typeId);\n} else {\n    console.warn("Entity with ID '${p.id}' not found.");\n}`
+                            }
+                        }
+                    },
+                    "system": {
+                        icon: "fa-solid fa-gears",
+                        methods: {
+                            "runTimeout": {
+                                docs: "Runs a function after a specified delay in ticks.",
+                                params: [
+                                    { name: "delayTicks", type: "number", docs: "Number of ticks to wait before executing.", placeholder: "100" },
+                                    { name: "callbackCode", type: "code", docs: "The code to execute inside the callback.", placeholder: `console.log("Time's up!");` }
+                                ],
+                                template: (p) => `import { system } from '@minecraft/server';\n\nsystem.runTimeout(() => {\n    ${p.callbackCode}\n}, ${p.delayTicks});`
+                            },
+                             "runInterval": {
+                                docs: "Runs a function repeatedly on a specified tick interval.",
+                                params: [
+                                    { name: "intervalTicks", type: "number", docs: "Number of ticks between executions.", placeholder: "20" },
+                                    { name: "callbackCode", type: "code", docs: "The code to execute on each interval.", placeholder: `world.sendMessage("Another second has passed!");` }
+                                ],
+                                template: (p) => `import { system, world } from '@minecraft/server';\n\nsystem.runInterval(() => {\n    ${p.callbackCode}\n}, ${p.intervalTicks});`
                             }
                         }
                     },
@@ -214,7 +236,7 @@
                                     { name: "location", type: "Vector3", docs: "New location for the player." },
                                     { name: "options", type: "json", optional: true, placeholder: '{ "checkForBlocks": true }', docs: "Teleport options."}
                                 ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    const location = ${p.location};\n    const teleportOptions = ${p.options || 'undefined'};\n    players[0].teleport(location, teleportOptions);\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    const location = ${p.location};\n    const teleportOptions = ${p.options || 'undefined'};\n    players[0].teleport(location, teleportOptions);\n}`
                             },
                              "addEffect": {
                                 docs: "Adds a status effect to the player.",
@@ -224,12 +246,12 @@
                                     { name: "duration", type: "number", docs: "Duration in ticks (20 ticks = 1 second).", placeholder: "200" },
                                     { name: "options", type: "json", optional: true, placeholder: '{ "amplifier": 1 }', docs: "Effect options."}
                                 ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    const effectOptions = ${p.options || '{}'};\n    players[0].addEffect("${p.effectType}", ${p.duration}, effectOptions);\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    const effectOptions = ${p.options || '{}'};\n    players[0].addEffect("${p.effectType}", ${p.duration}, effectOptions);\n}`
                             },
                              "kill": {
                                 docs: "Kills the player.",
                                 params: [{ name: "player", type: "target", placeholder: "Steve", docs: "Name of the player to kill." }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    players[0].kill();\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    players[0].kill();\n}`
                             },
                              "runCommand": {
                                 docs: "Runs a command as the player.",
@@ -237,7 +259,7 @@
                                     { name: "player", type: "target", placeholder: "Steve", docs: "Name of the player to run the command." },
                                     { name: "command", type: "string", docs: "The command to run (without a '/' prefix).", placeholder: "say Hello World" }
                                 ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    players[0].runCommand("${p.command}");\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    players[0].runCommand("${p.command}");\n}`
                             },
                             "setTitle": {
                                 docs: "Displays a title and optional subtitle on the player's screen.",
@@ -256,7 +278,7 @@
                             "kill": {
                                 docs: "Kills this entity.",
                                 params: [{ name: "entityId", type: "string", docs: "The unique ID of the entity to kill." }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    entity.kill();\n} else {\n    console.warn("Could not find entity with ID '${p.entityId}' to kill.");\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    entity.kill();\n} else {\n    console.warn("Could not find entity with ID '${p.entityId}' to kill.");\n}`
                             },
                             "applyDamage": {
                                 docs: "Applies damage to this entity.",
@@ -265,7 +287,7 @@
                                     { name: "amount", type: "number", docs: "Amount of damage to apply.", placeholder: "5" },
                                     { name: "options", type: "json", optional: true, docs: "Damage options (e.g., cause).", placeholder: `{ "cause": "magic" }` }
                                 ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const damageOptions = ${p.options || 'undefined'};\n    entity.applyDamage(${p.amount}, damageOptions);\n} else {\n    console.warn("Could not find entity with ID '${p.entityId}'.");\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const damageOptions = ${p.options || 'undefined'};\n    entity.applyDamage(${p.amount}, damageOptions);\n} else {\n    console.warn("Could not find entity with ID '${p.entityId}'.");\n}`
                             },
                             "addTag": {
                                 docs: "Adds a tag to an entity. Returns true if tag was added.",
@@ -273,7 +295,7 @@
                                     { name: "entityId", type: "string", docs: "The unique ID of the entity." },
                                     { name: "tag", type: "string", docs: "The tag to add.", placeholder: "processed" }
                                 ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const success = entity.addTag("${p.tag}");\n    if (success) {\n        console.log("Tag '${p.tag}' added.");\n    } else {\n        console.warn("Tag '${p.tag}' already exists on entity.");\n    }\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const success = entity.addTag("${p.tag}");\n    if (success) {\n        console.log("Tag '${p.tag}' added.");\n    } else {\n        console.warn("Tag '${p.tag}' already exists on entity.");\n    }\n}`
                             },
                             "getComponent": {
                                 docs: "Gets a component (that represents additional capabilities) for an entity.",
@@ -289,7 +311,7 @@
                                     { name: "entityId", type: "string", docs: "The unique ID of the entity." },
                                     { name: "vector", type: "Vector3", docs: "The impulse vector to apply." }
                                 ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    entity.applyImpulse(${p.vector});\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    entity.applyImpulse(${p.vector});\n}`
                             },
                              "tryTeleport": {
                                 docs: "Attempts to teleport the entity, but may fail if the destination is obstructed.",
@@ -298,7 +320,7 @@
                                     { name: "location", type: "Vector3", docs: "New location for the entity." },
                                     { name: "options", type: "json", optional: true, placeholder: '{ "checkForBlocks": true }', docs: "Teleport options."}
                                 ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const location = ${p.location};\n    const teleportOptions = ${p.options || 'undefined'};\n    const success = entity.tryTeleport(location, teleportOptions);\n    console.log("Teleport success: " + success);\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const location = ${p.location};\n    const teleportOptions = ${p.options || 'undefined'};\n    const success = entity.tryTeleport(location, teleportOptions);\n    console.log("Teleport success: " + success);\n}`
                             }
                         }
                     },
@@ -373,27 +395,6 @@
                             }
                         }
                     },
-                    "System": {
-                        icon: "fa-solid fa-gears",
-                        methods: {
-                            "runTimeout": {
-                                docs: "Runs a function after a specified delay in ticks.",
-                                params: [
-                                    { name: "delayTicks", type: "number", docs: "Number of ticks to wait before executing.", placeholder: "100" },
-                                    { name: "callbackCode", type: "code", docs: "The code to execute inside the callback.", placeholder: `console.log("Time's up!");` }
-                                ],
-                                template: (p) => `import { system } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nsystem.runTimeout(() => {\n    ${p.callbackCode}\n}, ${p.delayTicks});`
-                            },
-                             "runInterval": {
-                                docs: "Runs a function repeatedly on a specified tick interval.",
-                                params: [
-                                    { name: "intervalTicks", type: "number", docs: "Number of ticks between executions.", placeholder: "20" },
-                                    { name: "callbackCode", type: "code", docs: "The code to execute on each interval.", placeholder: `world.sendMessage("Another second has passed!");` }
-                                ],
-                                template: (p) => `import { system, world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nsystem.runInterval(() => {\n    ${p.callbackCode}\n}, ${p.intervalTicks});`
-                            }
-                        }
-                    },
                     "Scoreboard": {
                         icon: "fa-solid fa-clipboard-list",
                         methods: {
@@ -403,7 +404,7 @@
                                     { name: "objectiveId", type: "string", docs: "Identifier of the objective.", placeholder: "kills" },
                                     { name: "displayName", type: "string", docs: "Display name shown in-game.", placeholder: "Player Kills" }
                                 ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst objective = world.scoreboard.addObjective("${p.objectiveId}", "${p.displayName}");\nconsole.log("Objective created!");`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst objective = world.scoreboard.addObjective("${p.objectiveId}", "${p.displayName}");\nconsole.log("Objective created!");`
                             },
                              "setScore": {
                                 docs: "Sets the score for a participant on an objective.",
@@ -412,7 +413,7 @@
                                     { name: "participant", type: "target", docs: "The player or entity whose score to set.", placeholder: "Steve" },
                                     { name: "score", type: "number", docs: "The new score value.", placeholder: "100" }
                                 ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst objective = world.scoreboard.getObjective("${p.objectiveId}");\nif (objective) {\n    objective.setScore("${p.participant}", ${p.score});\n} else {\n    console.error("Objective '${p.objectiveId}' not found.");\n}`
+                                template: (p) => `import { world } from '@minecraft/server';\n\nconst objective = world.scoreboard.getObjective("${p.objectiveId}");\nif (objective) {\n    objective.setScore("${p.participant}", ${p.score});\n} else {\n    console.error("Objective '${p.objectiveId}' not found.");\n}`
                             }
                         }
                     },
@@ -468,6 +469,42 @@
                                 template: (p) => `import { system } from '@minecraft/server';\n\nconst options = { namespaces: ["${p.namespace}"] };\nsystem.afterEvents.scriptEventReceive.subscribe(event => {\n    ${p.callbackCode}\n}, options);`
                             }
                         }
+                    },
+                    "BlockComponentRegistry": {
+                        icon: "fa-solid fa-cogs",
+                        methods: {
+                            "registerCustomComponent": {
+                                docs: "Registers a new custom component for blocks.",
+                                params: [
+                                    { name: "componentId", type: "string", placeholder: "custom:my_block_component", docs: "The namespaced ID of the component." },
+                                    { name: "events", type: "custom_block_events", docs: "Select the events your component will listen to." }
+                                ],
+                                template: (p) => {
+                                    const eventHandlers = Object.entries(p.events).map(([eventName, code]) => {
+                                        return `    ${eventName}: (event) => {\n        ${code}\n    }`;
+                                    }).join(',\n');
+                                    return `import { system } from '@minecraft/server';\n\nsystem.blockComponentRegistry.registerCustomComponent("${p.componentId}", {\n${eventHandlers}\n});`;
+                                }
+                            }
+                        }
+                    },
+                    "ItemComponentRegistry": {
+                        icon: "fa-solid fa-cogs",
+                        methods: {
+                           "registerCustomComponent": {
+                                docs: "Registers a new custom component for items.",
+                                params: [
+                                    { name: "componentId", type: "string", placeholder: "custom:my_item_component", docs: "The namespaced ID of the component." },
+                                    { name: "events", type: "custom_item_events", docs: "Select the events your component will listen to." }
+                                ],
+                                template: (p) => {
+                                     const eventHandlers = Object.entries(p.events).map(([eventName, code]) => {
+                                        return `    ${eventName}: (event) => {\n        ${code}\n    }`;
+                                    }).join(',\n');
+                                    return `import { system } from '@minecraft/server';\n\nsystem.itemComponentRegistry.registerCustomComponent("${p.componentId}", {\n${eventHandlers}\n});`;
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -488,7 +525,6 @@
                                 template: (p) => {
                                     const buttons = p.buttons.split(',').map(b => `.button("${b.trim()}")`).join('\n        ');
                                     return `import { world } from '@minecraft/server';\nimport { ActionFormData } from '@minecraft/server-ui';\n
-// WARNING: Scripts are powerful. Always test in a non-essential world first.
 const players = world.getPlayers({ name: "${p.player}" });
 if (players.length > 0) {
     const form = new ActionFormData()
@@ -521,7 +557,6 @@ if (players.length > 0) {
                                     { name: "button2", type: "string", docs: "Text for the second button (right).", placeholder: "No" }
                                 ],
                                 template: (p) => `import { world } from '@minecraft/server';\nimport { MessageFormData } from '@minecraft/server-ui';\n
-// WARNING: Scripts are powerful. Always test in a non-essential world first.
 const players = world.getPlayers({ name: "${p.player}" });
 if (players.length > 0) {
     const form = new MessageFormData()
@@ -555,7 +590,6 @@ if (players.length > 0) {
                                     { name: "title", type: "string", docs: "Title of the form." }
                                 ],
                                 template: (p) => `import { world } from '@minecraft/server';\nimport { ModalFormData } from '@minecraft/server-ui';\n
-// WARNING: Scripts are powerful. Always test in a non-essential world first.
 const players = world.getPlayers({ name: "${p.player}" });
 if (players.length > 0) {
     const form = new ModalFormData()
@@ -678,6 +712,26 @@ if (myVariable !== undefined) {
             }
         };
 
+        const customComponentEvents = {
+            block: {
+                beforeOnPlayerPlace: { docs: "Fires before a player places this block." },
+                onPlayerInteract: { docs: "Fires when a player interacts with this block." },
+                onStepOn: { docs: "Fires when an entity steps on this block." },
+                onStepOff: { docs: "Fires when an entity steps off this block." },
+                onTick: { docs: "Fires every tick if the block is ticked." },
+                onRandomTick: { docs: "Fires on a random tick." },
+                onPlayerBreak: { docs: "Fires when a player breaks this block." },
+            },
+            item: {
+                onUse: { docs: "Fires when a player uses the item." },
+                onConsume: { docs: "Fires when a player finishes consuming the item (e.g. food)." },
+                onHitEntity: { docs: "Fires when this item is used to hit an entity." },
+                onMineBlock: { docs: "Fires when this item is used to mine a block." },
+                onCompleteUse: { docs: "Fires when the use duration is completed (e.g. drawing a bow)." },
+            }
+        };
+        
+        // ... [Rest of the JavaScript from the previous turn, it remains unchanged]
         const apiTree = document.getElementById('api-tree');
         const configContent = document.getElementById('config-content');
         const generateBtn = document.getElementById('generate-script-btn');
@@ -717,7 +771,7 @@ if (myVariable !== undefined) {
                     methodList.className = 'ml-4 border-l border-[var(--bg-light)] hidden';
 
                     classHeader.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Prevent module from toggling
+                        e.stopPropagation();
                         methodList.classList.toggle('hidden');
                         classHeader.classList.toggle('collapsed');
                     });
@@ -743,7 +797,7 @@ if (myVariable !== undefined) {
             }
         }
         
-        function displayConfig(moduleName, className, methodName) {
+       function displayConfig(moduleName, className, methodName) {
             selectedMethod = apiData[moduleName].classes[className].methods[methodName];
             configContent.innerHTML = '';
 
@@ -771,50 +825,87 @@ if (myVariable !== undefined) {
                 paramDiv.appendChild(label);
                 
                 let input;
-                switch(param.type) {
-                    case 'Vector3':
-                        input = document.createElement('div');
-                        input.className = 'grid grid-cols-3 gap-2';
-                        input.innerHTML = `
-                            <input type="number" data-name="${param.name}-x" placeholder="X" value="0" class="w-full">
-                            <input type="number" data-name="${param.name}-y" placeholder="Y" value="0" class="w-full">
-                            <input type="number" data-name="${param.name}-z" placeholder="Z" value="0" class="w-full">
-                        `;
-                        input.dataset.type = 'Vector3';
-                        input.dataset.paramName = param.name;
-                        break;
-                    case 'json':
-                    case 'code':
-                        input = document.createElement('textarea');
-                        input.placeholder = param.placeholder || '{}';
-                        input.className = "w-full h-24 code-editor text-sm";
-                        if (param.placeholder) input.value = param.placeholder;
-                        break;
-                    case 'array':
-                        input = document.createElement('input');
-                        input.type = 'text';
-                        input.placeholder = param.placeholder || '';
-                        break;
-                    case 'enum':
-                        input = document.createElement('select');
-                        param.options.forEach(opt => {
-                            const option = document.createElement('option');
-                            option.value = opt;
-                            option.textContent = opt;
-                            input.appendChild(option);
-                        });
-                        break;
-                    case 'target':
-                    default:
-                        input = document.createElement('input');
-                        input.type = param.type === 'number' ? 'number' : 'text';
-                        input.placeholder = param.placeholder || '';
-                        if ((param.type === 'number' || param.type === 'string') && param.placeholder) {
-                            input.value = param.placeholder;
-                        }
-                }
-                if (input.tagName !== 'DIV') {
+
+                if (param.type === 'custom_block_events' || param.type === 'custom_item_events') {
+                    input = document.createElement('div');
                     input.dataset.paramName = param.name;
+                    input.dataset.type = 'custom_events';
+                    const eventType = param.type === 'custom_block_events' ? 'block' : 'item';
+                    const events = customComponentEvents[eventType];
+                    
+                    for(const eventName in events) {
+                        const eventDiv = document.createElement('div');
+                        eventDiv.className = 'mt-2';
+                        const checkboxLabel = document.createElement('label');
+                        checkboxLabel.className = 'flex items-center space-x-2 text-sm';
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.dataset.eventName = eventName;
+                        checkboxLabel.appendChild(checkbox);
+                        const span = document.createElement('span');
+                        span.textContent = `${eventName} - ${events[eventName].docs}`;
+                        checkboxLabel.appendChild(span);
+                        
+                        const codeTextarea = document.createElement('textarea');
+                        codeTextarea.className = 'w-full h-24 code-editor text-sm mt-1 hidden';
+                        codeTextarea.placeholder = `// Code for ${eventName} event...\nconst { block, player } = event;`;
+                        codeTextarea.dataset.eventName = eventName;
+
+                        checkbox.addEventListener('change', () => {
+                            codeTextarea.classList.toggle('hidden', !checkbox.checked);
+                        });
+
+                        eventDiv.appendChild(checkboxLabel);
+                        eventDiv.appendChild(codeTextarea);
+                        input.appendChild(eventDiv);
+                    }
+
+                } else {
+                    switch(param.type) {
+                        case 'Vector3':
+                            input = document.createElement('div');
+                            input.className = 'grid grid-cols-3 gap-2';
+                            input.innerHTML = `
+                                <input type="number" data-name="${param.name}-x" placeholder="X" value="0" class="w-full">
+                                <input type="number" data-name="${param.name}-y" placeholder="Y" value="0" class="w-full">
+                                <input type="number" data-name="${param.name}-z" placeholder="Z" value="0" class="w-full">
+                            `;
+                            input.dataset.type = 'Vector3';
+                            input.dataset.paramName = param.name;
+                            break;
+                        case 'json':
+                        case 'code':
+                            input = document.createElement('textarea');
+                            input.placeholder = param.placeholder || '{}';
+                            input.className = "w-full h-24 code-editor text-sm";
+                            if (param.placeholder) input.value = param.placeholder;
+                            break;
+                        case 'array':
+                            input = document.createElement('input');
+                            input.type = 'text';
+                            input.placeholder = param.placeholder || '';
+                            break;
+                        case 'enum':
+                            input = document.createElement('select');
+                            param.options.forEach(opt => {
+                                const option = document.createElement('option');
+                                option.value = opt;
+                                option.textContent = opt;
+                                input.appendChild(option);
+                            });
+                            break;
+                        case 'target':
+                        default:
+                            input = document.createElement('input');
+                            input.type = param.type === 'number' ? 'number' : 'text';
+                            input.placeholder = param.placeholder || '';
+                            if ((param.type === 'number' || param.type === 'string') && param.placeholder) {
+                                input.value = param.placeholder;
+                            }
+                    }
+                    if (input.tagName !== 'DIV') {
+                        input.dataset.paramName = param.name;
+                    }
                 }
                 
                 paramDiv.appendChild(input);
@@ -845,6 +936,13 @@ if (myVariable !== undefined) {
                          const y = form.querySelector(`[data-name="${param.name}-y"]`).value;
                          const z = form.querySelector(`[data-name="${param.name}-z"]`).value;
                          values[param.name] = `{ x: ${x || 0}, y: ${y || 0}, z: ${z || 0} }`;
+                    } else if (el.dataset.type === 'custom_events') {
+                        values[param.name] = {};
+                        el.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                            const eventName = checkbox.dataset.eventName;
+                            const textarea = el.querySelector(`textarea[data-event-name="${eventName}"]`);
+                            values[param.name][eventName] = textarea.value.split('\n').map(line => `    ${line}`).join('\n').trim();
+                        });
                     } else if(el.type === 'number') {
                         values[param.name] = el.value || 0;
                     } else {
