@@ -3,978 +3,1248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Script Studio</title>
+    <title>Omni-Web Creator - WYSIWYG Website Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --bg-dark: #1a1b26;
-            --bg-medium: #24283b;
-            --bg-light: #414868;
-            --fg-default: #c0caf5;
-            --fg-muted: #a9b1d6;
-            --accent-blue: #7aa2f7;
-            --accent-green: #9ece6a;
-            --accent-red: #f7768e;
+            --primary: #4f46e5;
+            --secondary: #10b981;
+            --background: #f3f4f6;
+            --foreground: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --accent: #ec4899;
         }
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--fg-default);
+            background-color: var(--background);
         }
-        .code-editor {
-            font-family: 'Fira Code', monospace;
-            background-color: #16161e;
-            border-color: var(--bg-light);
-            color: var(--fg-default);
-            caret-color: var(--accent-blue);
+        .control-panel { background-color: var(--foreground); }
+        .canvas-preview { background-color: var(--foreground); }
+        .btn-primary { background-color: var(--primary); color: white; transition: background-color 0.3s; }
+        .btn-primary:hover { filter: brightness(90%); }
+        .btn-secondary { background-color: var(--secondary); color: white; transition: background-color: 0.3s; }
+        .btn-secondary:hover { filter: brightness(90%); }
+        .btn-outline { border: 1px solid #d1d5db; color: var(--text-secondary); transition: all 0.3s; }
+        .btn-outline:hover { background-color: #e5e7eb; color: var(--text-primary); }
+        .element-frame {
+            transition: box-shadow 0.2s, border-color 0.2s;
+            cursor: grab;
+            position: relative;
         }
-        .panel {
-            background-color: var(--bg-medium);
-            border: 1px solid var(--bg-light);
+        .element-frame.selected {
+            box-shadow: 0 0 0 2px var(--primary);
+            border-color: var(--primary);
         }
-        .nav-item {
-            transition: background-color 0.2s;
+        .element-frame:hover {
+            box-shadow: 0 0 0 2px #a5b4fc;
         }
-        .nav-item:hover {
-            background-color: var(--bg-light);
+        .placeholder {
+            height: 50px;
+            background-color: #e0e7ff;
+            border: 2px dashed #a5b4fc;
+            margin: 8px 0;
+            border-radius: 8px;
         }
-        .nav-item.selected {
-            background-color: var(--accent-blue);
-            color: var(--bg-dark);
-            font-weight: 600;
+        .dragging {
+            opacity: 0.5;
+            cursor: grabbing;
         }
-        .nav-item i {
-            width: 1.25rem;
-            text-align: center;
+        .modal-backdrop {
+            background-color: rgba(0,0,0,0.5);
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
         }
-        .btn {
-            transition: background-color 0.2s, transform 0.1s;
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            min-width: 300px;
+            max-width: 500px;
         }
-        .btn:hover {
-            transform: translateY(-1px);
+        .link-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: var(--accent);
+            color: white;
+            border-radius: 9999px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
-        .btn-primary { background-color: var(--accent-blue); color: var(--bg-dark); }
-        .btn-primary:hover { background-color: #8cb8ff; }
-        .btn-secondary { background-color: var(--accent-green); color: var(--bg-dark); }
-        .btn-secondary:hover { background-color: #b9f27c; }
-        .btn-danger { background-color: var(--accent-red); color: var(--bg-dark); }
-        .btn-danger:hover { background-color: #ff9e64; }
-        
-        input, select, textarea {
-            background-color: var(--bg-dark);
-            border: 1px solid var(--bg-light);
-            padding: 0.5rem;
-            border-radius: 0.375rem;
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 0 2px var(--accent-blue);
-        }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-medium); }
-        ::-webkit-scrollbar-thumb { background: var(--bg-light); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #565f89; }
-        .collapsible-header i.chevron { transition: transform 0.2s ease-in-out; }
-        .collapsible-header.collapsed i.chevron { transform: rotate(-90deg); }
     </style>
 </head>
-<body class="h-screen flex flex-col p-4 gap-4">
+<body class="overflow-hidden">
 
-    <header class="text-center">
-        <h1 class="text-3xl md:text-4xl font-bold text-white">Minecraft Script Studio</h1>
-        <p class="text-md text-gray-400">Made by Omni-Science</p>
-        <a href="https://discord.gg/xMy34mQCJ3" target="_blank" class="text-sm text-[var(--accent-blue)] hover:underline">Omni-Science Discord</a>
-    </header>
-
-    <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
-        <!-- Left Panel: Navigation -->
-        <div id="nav-panel" class="lg:col-span-3 panel rounded-xl flex flex-col overflow-hidden">
-            <h2 class="text-xl font-bold p-4 border-b border-[var(--bg-light)] text-white">API Explorer</h2>
-            <div class="overflow-y-auto p-2">
-                <div id="api-tree"></div>
+    <div id="app" class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-md p-3 flex justify-between items-center z-10 flex-shrink-0">
+            <div class="flex items-center space-x-2">
+                <img src="https://i.imgur.com/4VOsU9q.png" alt="Omni-Web Creator Logo" class="h-8 w-8">
+                <h1 class="text-xl font-bold text-gray-800">Omni-Web Creator</h1>
+                <span id="projectName" class="text-sm text-gray-500 ml-4">New Project</span>
             </div>
-        </div>
+            <div class="flex items-center space-x-2">
+                <button id="newProjectBtn" class="btn-outline px-3 py-1.5 rounded-md text-sm flex items-center space-x-2"><i data-lucide="file-plus-2"></i><span>New</span></button>
+                <button id="saveProjectBtn" class="btn-outline px-3 py-1.5 rounded-md text-sm flex items-center space-x-2"><i data-lucide="save"></i><span>Save</span></button>
+                <button id="loadProjectBtn" class="btn-outline px-3 py-1.5 rounded-md text-sm flex items-center space-x-2"><i data-lucide="folder-open"></i><span>Load</span></button>
+                <input type="file" id="loadProjectInput" class="hidden" accept=".wsb">
+                <button id="generateWebsiteBtn" class="btn-primary px-4 py-1.5 rounded-md text-sm font-semibold flex items-center space-x-2"><i data-lucide="download-cloud"></i><span>Export Website</span></button>
+            </div>
+        </header>
 
-        <!-- Center Panel: Configuration -->
-        <div id="config-panel" class="lg:col-span-5 panel rounded-xl flex flex-col overflow-hidden">
-             <h2 class="text-xl font-bold p-4 border-b border-[var(--bg-light)] text-white">Configuration</h2>
-             <div id="config-content" class="overflow-y-auto p-4 flex-grow">
-                 <div class="text-center text-gray-400 h-full flex items-center justify-center">
-                    <p>Select a method from the API Explorer to begin.</p>
-                 </div>
-             </div>
-             <div class="p-4 border-t border-[var(--bg-light)]">
-                 <button id="generate-script-btn" class="w-full btn btn-primary font-bold py-2 px-4 rounded-md shadow-md" disabled>Generate Script</button>
-             </div>
-        </div>
+        <!-- Main Content -->
+        <main class="flex flex-1 overflow-hidden">
+            <!-- Left Controls Panel -->
+            <aside class="control-panel w-80 p-4 overflow-y-auto flex-shrink-0 border-r border-gray-200">
+                <!-- Pages Section -->
+                <div class="mb-6">
+                    <h2 class="text-sm font-semibold text-gray-600 mb-2">PAGES</h2>
+                    <div id="pageList" class="space-y-1 mb-2"></div>
+                    <button id="addPageBtn" class="w-full btn-outline py-2 rounded-md text-sm">+ Add New Page</button>
+                </div>
 
-        <!-- Right Panel: Code Output -->
-        <div id="output-panel" class="lg:col-span-4 panel rounded-xl flex flex-col overflow-hidden">
-            <div class="flex justify-between items-center p-4 border-b border-[var(--bg-light)]">
-                <h2 class="text-xl font-bold text-white">Generated Code</h2>
-                <div class="flex space-x-2">
-                    <button id="clear-button" class="btn btn-danger font-bold py-1 px-3 rounded-md shadow-sm text-sm">Clear</button>
-                    <button id="copy-button" class="btn btn-secondary font-bold py-1 px-3 rounded-md shadow-sm text-sm">Copy</button>
+                <!-- Add Elements Section -->
+                <div class="mb-6">
+                    <h2 class="text-sm font-semibold text-gray-600 mb-2">ELEMENTS</h2>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="header"><i data-lucide="heading-1"></i><span class="text-xs mt-1">Header</span></button>
+                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="subheader"><i data-lucide="heading-2"></i><span class="text-xs mt-1">Sub-Header</span></button>
+                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="paragraph"><i data-lucide="pilcrow"></i><span class="text-xs mt-1">Paragraph</span></button>
+                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="image"><i data-lucide="image"></i><span class="text-xs mt-1">Image</span></button>
+                         <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="video"><i data-lucide="video"></i><span class="text-xs mt-1">Video</span></button>
+                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="button"><i data-lucide="mouse-pointer-square"></i><span class="text-xs mt-1">Button</span></button>
+                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center col-span-2" data-type="dropdown"><i data-lucide="menu-square"></i><span class="text-xs mt-1">Dropdown Menu</span></button>
+                    </div>
+                </div>
+
+                <!-- Global Styles / Properties Panel -->
+                <div id="propertiesPanel" class="space-y-4">
+                    <!-- This will be dynamically populated -->
+                </div>
+            </aside>
+
+            <!-- Center Canvas -->
+            <div class="flex-1 flex flex-col items-center justify-center p-4" id="canvas-bg">
+                <div id="canvas-wrapper" class="w-full h-full shadow-lg rounded-lg overflow-auto">
+                    <div id="canvas" class="p-8">
+                        <!-- Website elements will be rendered here -->
+                    </div>
                 </div>
             </div>
-            <div class="flex-grow p-2">
-                <textarea id="code-output" readonly class="w-full h-full code-editor resize-none"></textarea>
-            </div>
-        </div>
+        </main>
+        <!-- Footer -->
+        <footer class="text-center p-2 bg-gray-100 border-t border-gray-200 text-xs text-gray-500">
+            Made by king_of_coding, owned by Omni-Science
+        </footer>
     </div>
 
-    <script type="module">
-        // Gemini Review: This script has been validated against the provided API documentation.
-        // All API interactions, including custom component registration, appear to be correctly implemented.
+    <!-- Modals (hidden by default) -->
+    <div id="modalContainer"></div>
 
-        const apiData = {
-             "@minecraft/server": {
-                icon: "fa-solid fa-server",
-                classes: {
-                    "world": {
-                        icon: "fa-solid fa-globe",
-                        methods: {
-                             "sendMessage": {
-                                docs: "Sends a message to all players.",
-                                params: [{ name: "message", type: "string", docs: "The message to be displayed." }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nworld.sendMessage("${p.message}");`
-                            },
-                             "playSound": {
-                                docs: "Plays a sound for all players.",
-                                params: [
-                                    { name: "soundId", type: "string", docs: "Identifier of the sound to play.", placeholder: "random.orb" },
-                                    { name: "location", type: "Vector3", docs: "Location to play the sound at." },
-                                    { name: "options", type: "json", optional: true, docs: "Additional sound options.", placeholder: '{ "volume": 1.0, "pitch": 1.0 }' }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst location = ${p.location};\nconst soundOptions = ${p.options || 'undefined'};\n\nworld.playSound("${p.soundId}", location, soundOptions);`
-                            },
-                             "getPlayers": {
-                                docs: "Returns a set of players based on filter criteria.",
-                                params: [{ name: "options", type: "json", optional: true, docs: "Query options for filtering players.", placeholder: '{ "tags": ["sometag"] }' }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst options = ${p.options || '{}'};\nconst players = world.getPlayers(options);\n\nfor (const player of players) {\n    console.log("Found player: " + player.name);\n}`
-                            },
-                             "getEntity": {
-                                docs: "Returns an entity based on its unique identifier.",
-                                params: [{ name: "id", type: "string", docs: "The unique ID of the entity." }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.id}");\nif (entity) {\n    console.log("Found entity of type: " + entity.typeId);\n} else {\n    console.warn("Entity with ID '${p.id}' not found.");\n}`
-                            }
-                        }
-                    },
-                    "system": {
-                        icon: "fa-solid fa-gears",
-                        methods: {
-                            "runTimeout": {
-                                docs: "Runs a function after a specified delay in ticks.",
-                                params: [
-                                    { name: "delayTicks", type: "number", docs: "Number of ticks to wait before executing.", placeholder: "100" },
-                                    { name: "callbackCode", type: "code", docs: "The code to execute inside the callback.", placeholder: `console.log("Time's up!");` }
-                                ],
-                                template: (p) => `import { system } from '@minecraft/server';\n\nsystem.runTimeout(() => {\n    ${p.callbackCode}\n}, ${p.delayTicks});`
-                            },
-                             "runInterval": {
-                                docs: "Runs a function repeatedly on a specified tick interval.",
-                                params: [
-                                    { name: "intervalTicks", type: "number", docs: "Number of ticks between executions.", placeholder: "20" },
-                                    { name: "callbackCode", type: "code", docs: "The code to execute on each interval.", placeholder: `world.sendMessage("Another second has passed!");` }
-                                ],
-                                template: (p) => `import { system, world } from '@minecraft/server';\n\nsystem.runInterval(() => {\n    ${p.callbackCode}\n}, ${p.intervalTicks});`
-                            }
-                        }
-                    },
-                    "Dimension": {
-                        icon: "fa-solid fa-mountain-sun",
-                        methods: {
-                            "spawnEntity": {
-                                docs: "Spawns a new entity at a specified location.",
-                                params: [
-                                    { name: "identifier", type: "string", docs: "Type of entity to spawn.", placeholder: "minecraft:creeper" },
-                                    { name: "location", type: "Vector3", docs: "Where to spawn the entity." }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst dimension = world.getDimension("overworld");\nconst location = ${p.location};\n\ndimension.spawnEntity("${p.identifier}", location);`
-                            },
-                            "spawnItem": {
-                                docs: "Creates a new item stack as an entity at the specified location.",
-                                params: [
-                                    { name: "itemId", type: "string", docs: "Identifier of the item to spawn.", placeholder: "minecraft:diamond" },
-                                    { name: "location", type: "Vector3", docs: "Where to spawn the item." }
-                                ],
-                                template: (p) => `import { world, ItemStack } from '@minecraft/server';\n\nconst dimension = world.getDimension("overworld");\nconst itemStack = new ItemStack("${p.itemId}", 1);\nconst location = ${p.location};\n\ndimension.spawnItem(itemStack, location);`
-                            },
-                             "fillBlocks": {
-                                docs: "Fills a volume of blocks with a specified block type.",
-                                params: [
-                                     { name: "from", type: "Vector3", docs: "The first corner of the volume." },
-                                     { name: "to", type: "Vector3", docs: "The second corner of the volume." },
-                                     { name: "block", type: "string", docs: "Block permutation to fill with.", placeholder: "minecraft:stone" }
-                                ],
-                                template: (p) => `import { world, BlockVolume } from '@minecraft/server';\n\nconst dimension = world.getDimension("overworld");\nconst from = ${p.from};\nconst to = ${p.to};\nconst volume = new BlockVolume(from, to);\n\ndimension.fillBlocks(volume, "${p.block}");`
-                            },
-                            "createExplosion": {
-                                docs: "Creates an explosion at a specified location.",
-                                params: [
-                                    { name: "location", type: "Vector3", docs: "Location of the explosion." },
-                                    { name: "radius", type: "number", docs: "Radius of the explosion.", placeholder: "10" },
-                                    { name: "options", type: "json", optional: true, docs: "Explosion options.", placeholder: '{ "breaksBlocks": true, "causesFire": false }' }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst dimension = world.getDimension("overworld");\nconst location = ${p.location};\nconst explosionOptions = ${p.options || '{}'};\n\ndimension.createExplosion(location, ${p.radius}, explosionOptions);`
-                            },
-                            "getEntities": {
-                                docs: "Returns a set of entities based on filter criteria.",
-                                params: [{ name: "options", type: "json", optional: true, docs: "Query options for filtering entities.", placeholder: '{ "type": "minecraft:zombie", "maxDistance": 20 }' }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst dimension = world.getDimension("overworld");\nconst options = ${p.options || '{}'};\nconst entities = dimension.getEntities(options);\n\nfor (const entity of entities) {\n    console.log("Found entity: " + entity.typeId);\n}`
-                            }
-                        }
-                    },
-                     "Player": {
-                        icon: "fa-solid fa-user",
-                        methods: {
-                             "teleport": {
-                                docs: "Teleports the player to a new location.",
-                                params: [
-                                    { name: "player", type: "target", placeholder: "Steve", docs: "Name of the player to teleport." },
-                                    { name: "location", type: "Vector3", docs: "New location for the player." },
-                                    { name: "options", type: "json", optional: true, placeholder: '{ "checkForBlocks": true }', docs: "Teleport options."}
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    const location = ${p.location};\n    const teleportOptions = ${p.options || 'undefined'};\n    players[0].teleport(location, teleportOptions);\n}`
-                            },
-                             "addEffect": {
-                                docs: "Adds a status effect to the player.",
-                                params: [
-                                    { name: "player", type: "target", placeholder: "Steve", docs: "Name of the player to affect." },
-                                    { name: "effectType", type: "string", docs: "Type of effect (e.g., 'speed').", placeholder: "speed" },
-                                    { name: "duration", type: "number", docs: "Duration in ticks (20 ticks = 1 second).", placeholder: "200" },
-                                    { name: "options", type: "json", optional: true, placeholder: '{ "amplifier": 1 }', docs: "Effect options."}
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    const effectOptions = ${p.options || '{}'};\n    players[0].addEffect("${p.effectType}", ${p.duration}, effectOptions);\n}`
-                            },
-                             "kill": {
-                                docs: "Kills the player.",
-                                params: [{ name: "player", type: "target", placeholder: "Steve", docs: "Name of the player to kill." }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    players[0].kill();\n}`
-                            },
-                             "runCommand": {
-                                docs: "Runs a command as the player.",
-                                params: [
-                                    { name: "player", type: "target", placeholder: "Steve", docs: "Name of the player to run the command." },
-                                    { name: "command", type: "string", docs: "The command to run (without a '/' prefix).", placeholder: "say Hello World" }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    players[0].runCommand("${p.command}");\n}`
-                            },
-                            "setTitle": {
-                                docs: "Displays a title and optional subtitle on the player's screen.",
-                                params: [
-                                    { name: "player", type: "target", placeholder: "Steve", docs: "Player to show the title to." },
-                                    { name: "title", type: "string", placeholder: "Chapter 1", docs: "The main title text." },
-                                    { name: "options", type: "json", optional: true, placeholder: `{\n  "subtitle": "The Beginning",\n  "fadeInDuration": 20,\n  "stayDuration": 60,\n  "fadeOutDuration": 20\n}`, docs: "Title display options."}
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst players = world.getPlayers({ name: "${p.player}" });\nif (players.length > 0) {\n    const titleOptions = ${p.options || '{}'};\n    players[0].onScreenDisplay.setTitle("${p.title}", titleOptions);\n}`
-                            }
-                        }
-                    },
-                    "Entity": {
-                        icon: "fa-solid fa-ghost",
-                        methods: {
-                            "kill": {
-                                docs: "Kills this entity.",
-                                params: [{ name: "entityId", type: "string", docs: "The unique ID of the entity to kill." }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    entity.kill();\n} else {\n    console.warn("Could not find entity with ID '${p.entityId}' to kill.");\n}`
-                            },
-                            "applyDamage": {
-                                docs: "Applies damage to this entity.",
-                                params: [
-                                    { name: "entityId", type: "string", docs: "The unique ID of the entity to damage." },
-                                    { name: "amount", type: "number", docs: "Amount of damage to apply.", placeholder: "5" },
-                                    { name: "options", type: "json", optional: true, docs: "Damage options (e.g., cause).", placeholder: `{ "cause": "magic" }` }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const damageOptions = ${p.options || 'undefined'};\n    entity.applyDamage(${p.amount}, damageOptions);\n} else {\n    console.warn("Could not find entity with ID '${p.entityId}'.");\n}`
-                            },
-                            "addTag": {
-                                docs: "Adds a tag to an entity. Returns true if tag was added.",
-                                params: [
-                                    { name: "entityId", type: "string", docs: "The unique ID of the entity." },
-                                    { name: "tag", type: "string", docs: "The tag to add.", placeholder: "processed" }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const success = entity.addTag("${p.tag}");\n    if (success) {\n        console.log("Tag '${p.tag}' added.");\n    } else {\n        console.warn("Tag '${p.tag}' already exists on entity.");\n    }\n}`
-                            },
-                            "getComponent": {
-                                docs: "Gets a component (that represents additional capabilities) for an entity.",
-                                params: [
-                                    { name: "entityId", type: "string", docs: "The unique ID of the entity." },
-                                    { name: "componentId", type: "string", docs: "The identifier of the component (e.g., 'minecraft:health').", placeholder: "minecraft:health" }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const component = entity.getComponent("${p.componentId}");\n    if (component) {\n        console.log("Component '${p.componentId}' found.");\n    } else {\n        console.warn("Component '${p.componentId}' not found on entity.");\n    }\n}`
-                            },
-                             "applyImpulse": {
-                                docs: "Applies an impulse (a sudden force) to the entity.",
-                                params: [
-                                    { name: "entityId", type: "string", docs: "The unique ID of the entity." },
-                                    { name: "vector", type: "Vector3", docs: "The impulse vector to apply." }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    entity.applyImpulse(${p.vector});\n}`
-                            },
-                             "tryTeleport": {
-                                docs: "Attempts to teleport the entity, but may fail if the destination is obstructed.",
-                                params: [
-                                    { name: "entityId", type: "string", docs: "The unique ID of the entity." },
-                                    { name: "location", type: "Vector3", docs: "New location for the entity." },
-                                    { name: "options", type: "json", optional: true, placeholder: '{ "checkForBlocks": true }', docs: "Teleport options."}
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const location = ${p.location};\n    const teleportOptions = ${p.options || 'undefined'};\n    const success = entity.tryTeleport(location, teleportOptions);\n    console.log("Teleport success: " + success);\n}`
-                            }
-                        }
-                    },
-                    "Block": {
-                        icon: "fa-solid fa-cube",
-                        methods: {
-                            "setPermutation": {
-                                docs: "Sets the block to a specific permutation (state).",
-                                params: [
-                                    { name: "location", type: "Vector3", docs: "The location of the block." },
-                                    { name: "blockIdentifier", type: "string", docs: "The block identifier.", placeholder: "minecraft:chest" },
-                                    { name: "states", type: "json", optional: true, docs: "Block states.", placeholder: `{ "facing_direction": "north" }`}
-                                ],
-                                template: (p) => `import { world, BlockPermutation } from '@minecraft/server';\n\nconst dimension = world.getDimension("overworld");\nconst block = dimension.getBlock(${p.location});\nif (block) {\n    const permutation = BlockPermutation.resolve("${p.blockIdentifier}", ${p.states || {}});\n    block.setPermutation(permutation);\n}`
-                            }
-                        }
-                    },
-                     "ItemStack": {
-                        icon: "fa-solid fa-diamond",
-                        methods: {
-                            "constructor": {
-                                docs: "Creates a new item stack.",
-                                params: [
-                                    { name: "itemId", type: "string", docs: "The identifier of the item.", placeholder: "minecraft:diamond_sword" },
-                                    { name: "amount", type: "number", docs: "The number of items in the stack.", placeholder: "1" }
-                                ],
-                                template: (p) => `import { ItemStack } from '@minecraft/server';\n\nconst myItem = new ItemStack("${p.itemId}", ${p.amount});\nconsole.log("Created a new ItemStack.");`
-                            },
-                            "setLore": {
-                                docs: "Sets the lore (the text that appears below the item name).",
-                                params: [
-                                    { name: "itemId", type: "string", docs: "The identifier of the item.", placeholder: "minecraft:netherite_sword" },
-                                    { name: "lore", type: "array", docs: "Comma-separated list of lore lines.", placeholder: "§cAncient Blade,§7Forged in fire" }
-                                ],
-                                template: (p) => {
-                                    const loreArray = p.lore.split(',').map(l => `"${l.trim()}"`).join(', ');
-                                    return `import { ItemStack } from '@minecraft/server';\n\nconst myItem = new ItemStack("${p.itemId}", 1);\nmyItem.setLore([${loreArray}]);`;
-                                }
-                            }
-                        }
-                    },
-                    "EntityInventoryComponent": {
-                        icon: "fa-solid fa-box-archive",
-                        methods: {
-                            "addItem": {
-                                docs: "Adds an item to an entity's inventory.",
-                                params: [
-                                    { name: "entityId", type: "string", docs: "The unique ID of the entity." },
-                                    { name: "itemId", type: "string", docs: "The identifier of the item.", placeholder: "minecraft:apple" },
-                                    { name: "amount", type: "number", docs: "The number of items to add.", placeholder: "16" }
-                                ],
-                                template: (p) => `import { world, ItemStack, EntityInventoryComponent } from '@minecraft/server';\n\nconst entity = world.getEntity("${p.entityId}");\nif (entity) {\n    const inventory = entity.getComponent("inventory") as EntityInventoryComponent;\n    if (inventory) {\n        const item = new ItemStack("${p.itemId}", ${p.amount});\n        inventory.container.addItem(item);\n    }\n}`
-                            }
-                        }
-                    },
-                    "StructureManager": {
-                        icon: "fa-solid fa-building",
-                        methods: {
-                            "place": {
-                                docs: "Places a structure in the world.",
-                                params: [
-                                    { name: "structureId", type: "string", docs: "Identifier of the structure (e.g., 'mystructure:red_house').", placeholder: "mystructure:outhouse" },
-                                    { name: "location", type: "Vector3", docs: "Location to place the structure origin." },
-                                    { name: "options", type: "json", optional: true, docs: "Structure placement options.", placeholder: `{ "rotation": "Rotate90" }` }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: Scripts are powerful. Always test in a non-essential world first.\nconst dimension = world.getDimension("overworld");\nconst location = ${p.location};\nconst options = ${p.options || '{}'};\n\nworld.structureManager.place("${p.structureId}", dimension, location, options);`
-                            },
-                             "delete": {
-                                docs: "Deletes a structure from the world save.",
-                                params: [{ name: "structureId", type: "string", docs: "Identifier of the structure to delete.", placeholder: "mystructure:old_build" }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\n// WARNING: This is a destructive operation. Be careful.\nconst success = world.structureManager.delete("${p.structureId}");\nif (success) {\n    console.log("Structure '${p.structureId}' deleted.");\n} else {\n    console.warn("Could not find or delete structure '${p.structureId}'.");\n}`
-                            }
-                        }
-                    },
-                    "Scoreboard": {
-                        icon: "fa-solid fa-clipboard-list",
-                        methods: {
-                            "addObjective": {
-                                docs: "Adds a new objective to the scoreboard.",
-                                params: [
-                                    { name: "objectiveId", type: "string", docs: "Identifier of the objective.", placeholder: "kills" },
-                                    { name: "displayName", type: "string", docs: "Display name shown in-game.", placeholder: "Player Kills" }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst objective = world.scoreboard.addObjective("${p.objectiveId}", "${p.displayName}");\nconsole.log("Objective created!");`
-                            },
-                             "setScore": {
-                                docs: "Sets the score for a participant on an objective.",
-                                params: [
-                                    { name: "objectiveId", type: "string", docs: "Identifier of the objective.", placeholder: "money" },
-                                    { name: "participant", type: "target", docs: "The player or entity whose score to set.", placeholder: "Steve" },
-                                    { name: "score", type: "number", docs: "The new score value.", placeholder: "100" }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nconst objective = world.scoreboard.getObjective("${p.objectiveId}");\nif (objective) {\n    objective.setScore("${p.participant}", ${p.score});\n} else {\n    console.error("Objective '${p.objectiveId}' not found.");\n}`
-                            }
-                        }
-                    },
-                    "WorldAfterEvents": {
-                        icon: "fa-solid fa-forward",
-                        methods: {
-                            "playerJoin": {
-                                docs: "Subscribes to an event that fires when a player joins the world.",
-                                params: [{ name: "callbackCode", type: "code", docs: "Code to run inside the event handler.", placeholder: `world.sendMessage(\`Welcome, \${event.playerName}!\`);` }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nworld.afterEvents.playerJoin.subscribe(event => {\n    ${p.callbackCode}\n});`
-                            },
-                             "entitySpawn": {
-                                docs: "Subscribes to an event that fires when an entity is spawned.",
-                                params: [{ name: "callbackCode", type: "code", docs: "Code to run inside the event handler.", placeholder: `console.log(\`A \${event.entity.typeId} has spawned at \${JSON.stringify(event.entity.location)}.\`);` }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nworld.afterEvents.entitySpawn.subscribe(event => {\n    ${p.callbackCode}\n});`
-                            },
-                            "playerBreakBlock": {
-                                docs: "Subscribes to an event that fires when a player breaks a block.",
-                                params: [{ name: "callbackCode", type: "code", docs: "Code to run inside the event handler.", placeholder: `console.log(\`\${event.player.name} broke a \${event.brokenBlockPermutation.type.id}.\`);` }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nworld.afterEvents.playerBreakBlock.subscribe(event => {\n    ${p.callbackCode}\n});`
-                            },
-                             "entityHurt": {
-                                docs: "Subscribes to an event that fires when an entity is hurt.",
-                                params: [{ name: "callbackCode", type: "code", docs: "Code to run inside the event handler.", placeholder: `if(event.damageSource.cause === "entityAttack") {\n        console.log(\`\${event.hurtEntity.typeId} was attacked!\`);\n    }` }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nworld.afterEvents.entityHurt.subscribe(event => {\n    ${p.callbackCode}\n});`
-                            }
-                        }
-                    },
-                    "WorldBeforeEvents": {
-                        icon: "fa-solid fa-backward",
-                        methods: {
-                            "chatSend": {
-                                docs: "Subscribes to an event that fires before a chat message is sent. Can be canceled.",
-                                params: [{ name: "callbackCode", type: "code", docs: "Code to run inside the event handler.", placeholder: `if (event.message.startsWith("!")) {\n        event.cancel = true;\n        world.sendMessage(\`Command '\${event.message}' processed.\`);\n    }` }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nworld.beforeEvents.chatSend.subscribe(event => {\n    ${p.callbackCode}\n});`
-                            },
-                            "itemUse": {
-                                docs: "Subscribes to an event that fires before an item is used. Can be canceled.",
-                                params: [{ name: "callbackCode", type: "code", docs: "Code to run inside the event handler.", placeholder: `if (event.itemStack.typeId === "minecraft:flint_and_steel") {\n        event.cancel = true;\n        event.source.sendMessage("Fire is disabled!");\n    }` }],
-                                template: (p) => `import { world } from '@minecraft/server';\n\nworld.beforeEvents.itemUse.subscribe(event => {\n    ${p.callbackCode}\n});`
-                            }
-                        }
-                    },
-                     "SystemAfterEvents": {
-                        icon: "fa-solid fa-forward-step",
-                        methods: {
-                            "scriptEventReceive": {
-                                docs: "Subscribes to an event that fires when a /scriptevent command is run.",
-                                params: [
-                                    { name: "namespace", type: "string", placeholder: "my_namespace", docs: "The namespace to filter messages for." },
-                                    { name: "callbackCode", type: "code", docs: "Code to run inside the event handler.", placeholder: `console.log(\`Received event '\${event.id}' with message: '\${event.message}'\`);` }
-                                ],
-                                template: (p) => `import { system } from '@minecraft/server';\n\nconst options = { namespaces: ["${p.namespace}"] };\nsystem.afterEvents.scriptEventReceive.subscribe(event => {\n    ${p.callbackCode}\n}, options);`
-                            }
-                        }
-                    },
-                    "BlockComponentRegistry": {
-                        icon: "fa-solid fa-cogs",
-                        methods: {
-                            "registerCustomComponent": {
-                                docs: "Registers a new custom component for blocks.",
-                                params: [
-                                    { name: "componentId", type: "string", placeholder: "custom:my_block_component", docs: "The namespaced ID of the component." },
-                                    { name: "events", type: "custom_block_events", docs: "Select the events your component will listen to." }
-                                ],
-                                template: (p) => {
-                                    const eventHandlers = Object.entries(p.events).map(([eventName, code]) => {
-                                        return `    ${eventName}: (event) => {\n        ${code}\n    }`;
-                                    }).join(',\n');
-                                    return `import { system } from '@minecraft/server';\n\nsystem.blockComponentRegistry.registerCustomComponent("${p.componentId}", {\n${eventHandlers}\n});`;
-                                }
-                            }
-                        }
-                    },
-                    "ItemComponentRegistry": {
-                        icon: "fa-solid fa-cogs",
-                        methods: {
-                           "registerCustomComponent": {
-                                docs: "Registers a new custom component for items.",
-                                params: [
-                                    { name: "componentId", type: "string", placeholder: "custom:my_item_component", docs: "The namespaced ID of the component." },
-                                    { name: "events", type: "custom_item_events", docs: "Select the events your component will listen to." }
-                                ],
-                                template: (p) => {
-                                     const eventHandlers = Object.entries(p.events).map(([eventName, code]) => {
-                                        return `    ${eventName}: (event) => {\n        ${code}\n    }`;
-                                    }).join(',\n');
-                                    return `import { system } from '@minecraft/server';\n\nsystem.itemComponentRegistry.registerCustomComponent("${p.componentId}", {\n${eventHandlers}\n});`;
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "@minecraft/server-ui": {
-                icon: "fa-solid fa-window-maximize",
-                classes: {
-                    "ActionFormData": {
-                        icon: "fa-solid fa-hand-pointer",
-                        methods: {
-                            "showActionForm": {
-                                docs: "Creates and shows a form with a list of buttons.",
-                                params: [
-                                    { name: "player", type: "target", placeholder: "Steve", docs: "Player to show the form to." },
-                                    { name: "title", type: "string", docs: "Title of the form." },
-                                    { name: "body", type: "string", docs: "Body text of the form." },
-                                    { name: "buttons", type: "array", placeholder: "OK, Cancel", docs: "Comma-separated list of button labels."}
-                                ],
-                                template: (p) => {
-                                    const buttons = p.buttons.split(',').map(b => `.button("${b.trim()}")`).join('\n        ');
-                                    return `import { world } from '@minecraft/server';\nimport { ActionFormData } from '@minecraft/server-ui';\n
-const players = world.getPlayers({ name: "${p.player}" });
-if (players.length > 0) {
-    const form = new ActionFormData()
-        .title("${p.title}")
-        .body("${p.body}")
-        ${buttons};
 
-    form.show(players[0]).then(response => {
-        if (response.canceled) {
-            console.warn("Form canceled. Reason: " + response.cancelationReason);
-            return;
-        }
-        console.log("Button " + response.selection + " was pressed.");
-    });
-}`;
-                                }
-                            }
-                        }
-                    },
-                     "MessageFormData": {
-                        icon: "fa-solid fa-comment-dots",
-                        methods: {
-                            "showMessageForm": {
-                                docs: "Creates and shows a simple two-button dialog.",
-                                params: [
-                                    { name: "player", type: "target", placeholder: "Steve", docs: "Player to show the form to." },
-                                    { name: "title", type: "string", docs: "Title of the dialog." },
-                                    { name: "body", type: "string", docs: "Body text of the dialog." },
-                                    { name: "button1", type: "string", docs: "Text for the first button (left).", placeholder: "Yes" },
-                                    { name: "button2", type: "string", docs: "Text for the second button (right).", placeholder: "No" }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\nimport { MessageFormData } from '@minecraft/server-ui';\n
-const players = world.getPlayers({ name: "${p.player}" });
-if (players.length > 0) {
-    const form = new MessageFormData()
-        .title("${p.title}")
-        .body("${p.body}")
-        .button1("${p.button1}")
-        .button2("${p.button2}");
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
 
-    form.show(players[0]).then(response => {
-        if (response.canceled) {
-            console.warn("Form canceled.");
-            return;
-        }
-        if (response.selection === 0) {
-            console.log("User chose '${p.button1}'");
-        } else {
-            console.log("User chose '${p.button2}'");
-        }
-    });
-}`
-                            }
-                        }
-                    },
-                    "ModalFormData": {
-                        icon: "fa-solid fa-list-check",
-                         methods: {
-                            "showModalForm": {
-                                docs: "Shows a customizable form with various input controls.",
-                                params: [
-                                    { name: "player", type: "target", placeholder: "Steve", docs: "Player to show the form to." },
-                                    { name: "title", type: "string", docs: "Title of the form." }
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\nimport { ModalFormData } from '@minecraft/server-ui';\n
-const players = world.getPlayers({ name: "${p.player}" });
-if (players.length > 0) {
-    const form = new ModalFormData()
-        .title("${p.title}")
-        .textField("Name", "Enter your name")
-        .slider("Age", 1, 100, 1, 25)
-        .toggle("Agrees to terms", true);
+    // --- STATE MANAGEMENT ---
+    let projectData = {};
+    let currentPage = 'index.html';
+    let selectedElementIndex = null;
+    let images = {}; // Store image data as base64
 
-    form.show(players[0]).then(response => {
-        if (response.canceled) {
-            console.warn("Form canceled.");
-            return;
-        }
-        const [name, age, agrees] = response.formValues;
-        console.log(\`Name: \${name}, Age: \${age}, Agrees: \${agrees}\`);
-    });
-}`
-                            }
-                        }
-                    }
-                }
-            },
-             "@minecraft/server-net": {
-                icon: "fa-solid fa-wifi",
-                 classes: {
-                    "http": {
-                        icon: "fa-solid fa-globe",
-                        methods: {
-                            "request": {
-                                docs: "Performs an HTTP-based request. (Requires Bedrock Dedicated Server)",
-                                params: [
-                                    { name: "uri", type: "string", placeholder: "https://httpbin.org/get", docs: "URL to make the request to." },
-                                    { name: "method", type: "enum", options: ["GET", "POST", "PUT", "DELETE", "HEAD"], docs: "HTTP method." },
-                                    { name: "body", type: "json", optional: true, placeholder: '{"key": "value"}', docs: "Request body for POST/PUT." }
-                                ],
-                                template: (p) => `import { http, HttpRequest, HttpRequestMethod, HttpHeader } from '@minecraft/server-net';\n
-// WARNING: This script uses network requests and is only available on Bedrock Dedicated Servers.
-const req = new HttpRequest("${p.uri}");
-req.method = HttpRequestMethod.${p.method === 'GET' ? 'Get' : p.method === 'POST' ? 'Post' : p.method === 'PUT' ? 'Put' : 'Delete'};
-${p.body ? `req.body = JSON.stringify(${p.body});` : ''}
-${p.body ? `req.headers = [new HttpHeader("Content-Type", "application/json")];` : ''}
+    // --- DOM REFERENCES ---
+    const pageList = document.getElementById('pageList');
+    const addPageBtn = document.getElementById('addPageBtn');
+    const canvas = document.getElementById('canvas');
+    const propertiesPanel = document.getElementById('propertiesPanel');
+    const addElementBtns = document.querySelectorAll('.add-element-btn');
+    const newProjectBtn = document.getElementById('newProjectBtn');
+    const saveProjectBtn = document.getElementById('saveProjectBtn');
+    const loadProjectBtn = document.getElementById('loadProjectBtn');
+    const loadProjectInput = document.getElementById('loadProjectInput');
+    const generateWebsiteBtn = document.getElementById('generateWebsiteBtn');
+    const projectNameEl = document.getElementById('projectName');
 
-http.request(req).then(response => {
-    console.log("HTTP Response Status: " + response.status);
-    console.log("Body: " + response.body);
-}).catch(error => {
-    console.error("HTTP Request failed: " + error);
-});`
-                            }
-                        }
-                    }
-                }
-            },
-            "@minecraft/server-admin": {
-                icon: "fa-solid fa-shield-halved",
-                classes: {
-                    "Admin Functions": {
-                        icon: "fa-solid fa-screwdriver-wrench",
-                        methods: {
-                            "transferPlayer": {
-                                docs: "Transfers a player to another server. (Requires Bedrock Dedicated Server)",
-                                params: [
-                                    { name: "player", type: "target", placeholder: "Steve", docs: "Player to transfer." },
-                                    { name: "hostname", type: "string", placeholder: "play.example.com", docs: "Hostname or IP of the destination server." },
-                                    { name: "port", type: "number", placeholder: "19132", docs: "Port of the destination server."}
-                                ],
-                                template: (p) => `import { world } from '@minecraft/server';\nimport { transferPlayer } from '@minecraft/server-admin';\n
-// WARNING: This script is only available on Bedrock Dedicated Servers.
-const players = world.getPlayers({ name: "${p.player}" });
-if (players.length > 0) {
-    const options = {
-        hostname: "${p.hostname}",
-        port: ${p.port}
-    };
-    try {
-        transferPlayer(players[0], options);
-    } catch(e) {
-        console.error("Failed to transfer player: " + e);
+    // --- INITIALIZATION ---
+    function init() {
+        newProject();
     }
-}`
-                            }
-                        }
-                    },
-                    "Server Variables": {
-                        icon: "fa-solid fa-gears",
-                        methods: {
-                            "getSecret": {
-                                docs: "Gets a secret string from server config. (Requires Bedrock Dedicated Server)",
-                                params: [
-                                    { name: "secretName", type: "string", placeholder: "authToken", docs: "Name of the secret to retrieve." }
-                                ],
-                                template: (p) => `import { secrets } from '@minecraft/server-admin';\n
-// WARNING: This script is only available on Bedrock Dedicated Servers.
-const mySecret = secrets.get("${p.secretName}");\n
-if (mySecret) {
-    // Note: You can't directly read the secret's value.
-    // It's used in specific APIs like http.request headers.
-    console.log("Secret '${p.secretName}' was retrieved successfully.");
-} else {
-    console.error("Secret '${p.secretName}' not found in server configuration files.");
-}`
-                            },
-                            "getVariable": {
-                                docs: "Gets a variable from server config. (Requires Bedrock Dedicated Server)",
-                                params: [
-                                    { name: "variableName", type: "string", placeholder: "serverEndpoint", docs: "Name of the variable to retrieve." }
-                                ],
-                                template: (p) => `import { variables } from '@minecraft/server-admin';\n
-// WARNING: This script is only available on Bedrock Dedicated Servers.
-const myVariable = variables.get("${p.variableName}");\n
-if (myVariable !== undefined) {
-    console.log("Variable '${p.variableName}' has value: " + JSON.stringify(myVariable));
-} else {
-    console.error("Variable '${p.variableName}' not found in server configuration files.");
-}`
-                            }
-                        }
-                    }
+
+    function newProject() {
+        projectData = {
+            "index.html": {
+                elements: [],
+                styles: getDefaultStyles()
+            },
+            themes: {
+                'Default': {
+                    primary: '#4f46e5',
+                    secondary: '#10b981',
+                    background: '#ffffff',
+                    foreground: '#f3f4f6',
+                    'text-primary': '#1f2937',
+                    'text-secondary': '#4b5563',
+                    accent: '#ec4899',
                 }
+            },
+            currentTheme: 'Default'
+        };
+        images = {};
+        currentPage = 'index.html';
+        selectedElementIndex = null;
+        projectNameEl.textContent = 'New Project';
+        updateAll();
+    }
+
+    function getDefaultStyles() {
+        return {
+            backgroundColor: "#FFFFFF",
+            fontColor: "#1f2937",
+            fontFamily: "Inter",
+            headerFontSize: 32,
+            subHeaderFontSize: 24,
+            paragraphFontSize: 16
+        };
+    }
+
+    // --- CORE RENDER FUNCTIONS ---
+    function updateAll() {
+        applyTheme();
+        renderPageList();
+        renderCanvas();
+        renderPropertiesPanel();
+    }
+
+    function applyTheme() {
+        const theme = projectData.themes[projectData.currentTheme];
+        if (!theme) return;
+        for (const [key, value] of Object.entries(theme)) {
+            document.documentElement.style.setProperty(`--${key}`, value);
+        }
+    }
+
+    function renderPageList() {
+        pageList.innerHTML = '';
+        Object.keys(projectData).filter(p => p !== 'themes' && p !== 'currentTheme').sort().forEach(pageName => {
+            const isActive = pageName === currentPage;
+            const pageItem = document.createElement('div');
+            pageItem.className = `flex justify-between items-center px-3 py-2 rounded-md cursor-pointer ${isActive ? 'bg-indigo-100 text-primary' : 'hover:bg-gray-100'}`;
+            pageItem.textContent = pageName;
+            pageItem.onclick = () => switchPage(pageName);
+            
+            if (pageName !== 'index.html') {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4 text-gray-500 hover:text-red-500"></i>';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    removePage(pageName);
+                };
+                pageItem.appendChild(deleteBtn);
+            }
+            
+            pageList.appendChild(pageItem);
+        });
+        lucide.createIcons();
+    }
+
+    function renderCanvas() {
+        const page = projectData[currentPage];
+        if (!page) return;
+
+        // Apply global styles to canvas wrapper
+        const theme = projectData.themes[projectData.currentTheme];
+        document.getElementById('canvas-bg').style.backgroundColor = theme.foreground;
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+        canvasWrapper.style.backgroundColor = theme.background;
+        canvasWrapper.style.color = theme['text-primary'];
+        canvasWrapper.style.fontFamily = page.styles.fontFamily;
+
+        canvas.innerHTML = '';
+        if (page.elements.length === 0) {
+            canvas.innerHTML = `
+                <div class="text-center text-gray-400 py-20">
+                    <p>Your page is empty.</p>
+                    <p class="text-sm">Click on an element from the left panel to add it here.</p>
+                </div>
+            `;
+        }
+
+        page.elements.forEach((element, index) => {
+            const elWrapper = document.createElement('div');
+            elWrapper.className = `element-frame p-2 border border-transparent rounded-lg ${selectedElementIndex === index ? 'selected' : ''}`;
+            elWrapper.draggable = true;
+            elWrapper.dataset.index = index;
+            elWrapper.style.textAlign = element.align || 'left';
+            
+            if (element.link && element.link.href) {
+                 const badge = document.createElement('div');
+                 badge.className = 'link-badge';
+                 badge.innerHTML = '<i data-lucide="link" class="w-3 h-3"></i>';
+                 elWrapper.appendChild(badge);
+            }
+            
+            elWrapper.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectElement(index);
+            });
+
+            const elContent = renderElement(element);
+            elWrapper.appendChild(elContent);
+            canvas.appendChild(elWrapper);
+        });
+        
+        lucide.createIcons();
+        setupDragAndDrop();
+    }
+    
+    function renderElement(element) {
+        const el = document.createElement('div');
+        el.style.display = 'inline-block';
+        el.style.textAlign = 'left'; // Reset inner content alignment
+        
+        const pageStyles = projectData[currentPage].styles;
+        
+        switch (element.type) {
+            case 'header':
+            case 'subheader':
+            case 'paragraph':
+                const tagName = { header: 'h1', subheader: 'h2', paragraph: 'p' }[element.type];
+                const textEl = document.createElement(tagName);
+                textEl.textContent = element.content;
+                
+                const defaultSize = { header: pageStyles.headerFontSize, subheader: pageStyles.subHeaderFontSize, paragraph: pageStyles.paragraphFontSize }[element.type];
+                textEl.style.fontSize = `${element.fontSize || defaultSize}px`;
+                if(element.type.includes('header')) textEl.style.fontWeight = 'bold';
+                
+                el.appendChild(textEl);
+                break;
+
+            case 'image':
+                const img = document.createElement('img');
+                img.src = images[element.src] || 'https://placehold.co/300x200/e0e7ff/a5b4fc?text=Image';
+                img.style.maxWidth = '100%';
+                img.style.width = `${element.scale || 100}%`;
+                el.appendChild(img);
+                break;
+
+            case 'video':
+                 const videoText = document.createElement('div');
+                 videoText.className = "p-4 border rounded-md bg-gray-100 text-gray-600";
+                 videoText.innerHTML = `<i data-lucide="video" class="inline-block mr-2"></i>Video Placeholder: ${element.src || 'No source'}`;
+                 el.appendChild(videoText);
+                 setTimeout(() => lucide.createIcons(), 0);
+                 break;
+
+            case 'button':
+                const btn = document.createElement('a'); // Use an anchor tag for semantics
+                btn.href = element.href || '#';
+                btn.textContent = element.text || 'Click Me';
+                btn.onclick = (e) => e.preventDefault(); // Prevent navigation in builder
+                btn.className = 'btn-primary px-4 py-2 rounded-md inline-block';
+                el.appendChild(btn);
+                break;
+                
+            case 'dropdown':
+                 const ddFrame = document.createElement('div');
+                 ddFrame.className = "inline-block relative";
+                 
+                 const ddButton = document.createElement('button');
+                 ddButton.textContent = element.name;
+                 ddButton.className = "text-white px-4 py-2 rounded-md";
+                 ddButton.style.backgroundColor = projectData.themes[projectData.currentTheme]['text-primary'];
+                 
+                 const ddContent = document.createElement('div');
+                 ddContent.className = "absolute bg-white shadow-lg rounded-md mt-1 py-1 hidden";
+                 element.items.forEach(item => {
+                     const itemLink = document.createElement('a');
+                     itemLink.href = item.href;
+                     itemLink.textContent = item.text;
+                     itemLink.className = "block px-4 py-2 text-gray-800 hover:bg-gray-100";
+                     ddContent.appendChild(itemLink);
+                 });
+                 
+                 ddFrame.appendChild(ddButton);
+                 ddFrame.appendChild(ddContent);
+                 
+                 ddButton.addEventListener('mouseover', () => ddContent.classList.remove('hidden'));
+                 ddFrame.addEventListener('mouseleave', () => ddContent.classList.add('hidden'));
+
+                 el.appendChild(ddFrame);
+                 break;
+        }
+        return el;
+    }
+
+
+    function renderPropertiesPanel() {
+        propertiesPanel.innerHTML = '';
+        const element = selectedElementIndex !== null ? projectData[currentPage].elements[selectedElementIndex] : null;
+
+        if (element) {
+            // Element specific properties
+            const title = document.createElement('h2');
+            title.className = 'text-sm font-semibold text-gray-600 mb-2 uppercase';
+            title.textContent = `${element.type} Properties`;
+            propertiesPanel.appendChild(title);
+
+            // Alignment
+            propertiesPanel.appendChild(createAlignmentControls(element));
+            propertiesPanel.appendChild(createSeparator());
+
+            switch(element.type) {
+                case 'header':
+                case 'subheader':
+                case 'paragraph':
+                    propertiesPanel.appendChild(createTextInput('Content', element.content, (val) => updateElement('content', val)));
+                    propertiesPanel.appendChild(createNumberInput('Font Size (px)', element.fontSize, (val) => updateElement('fontSize', parseInt(val, 10))));
+                    break;
+                case 'image':
+                    propertiesPanel.appendChild(createFileUpload('Image Source', 'image/*', (file) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            images[file.name] = e.target.result;
+                            updateElement('src', file.name);
+                        };
+                        reader.readAsDataURL(file);
+                    }));
+                    propertiesPanel.appendChild(createRangeInput('Scale (%)', element.scale || 100, 10, 200, (val) => updateElement('scale', parseInt(val, 10))));
+                    break;
+                case 'video':
+                    propertiesPanel.appendChild(createTextInput('Video URL', element.src, (val) => updateElement('src', val), 'YouTube, Vimeo, or file URL'));
+                    break;
+                case 'button':
+                    propertiesPanel.appendChild(createTextInput('Button Text', element.text, (val) => updateElement('text', val)));
+                    propertiesPanel.appendChild(createUrlInput('Link URL', element.href, (val) => updateElement('href', val)));
+                    break;
+                case 'dropdown':
+                    propertiesPanel.appendChild(createTextInput('Menu Name', element.name, (val) => updateElement('name', val)));
+                    propertiesPanel.appendChild(createSeparator());
+                    propertiesPanel.appendChild(createDropdownItemsEditor(element));
+                    break;
+            }
+            
+            // Add linking capabilities to all elements
+            propertiesPanel.appendChild(createSeparator());
+            propertiesPanel.appendChild(createLinkEditor(element));
+
+            propertiesPanel.appendChild(createSeparator());
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'w-full btn-outline border-red-300 text-red-600 hover:bg-red-50 py-2 rounded-md text-sm';
+            deleteBtn.innerHTML = '<i data-lucide="trash-2" class="inline-block w-4 h-4 mr-2"></i>Delete Element';
+            deleteBtn.onclick = deleteElement;
+            propertiesPanel.appendChild(deleteBtn);
+            lucide.createIcons();
+
+        } else {
+            // Global styles
+            const title = document.createElement('h2');
+            title.className = 'text-sm font-semibold text-gray-600 mb-2 uppercase';
+            title.textContent = 'Global Page Styles';
+            propertiesPanel.appendChild(title);
+            
+            propertiesPanel.appendChild(createThemeManager());
+            propertiesPanel.appendChild(createSeparator());
+
+            const pageStyles = projectData[currentPage].styles;
+            const fonts = ['Inter', 'Arial', 'Georgia', 'Times New Roman', 'Verdana'];
+            propertiesPanel.appendChild(createSelectInput('Font Family', pageStyles.fontFamily, fonts, (val) => updateStyle('fontFamily', val)));
+        }
+    }
+
+    // --- PROPERTY PANEL UI BUILDERS ---
+    function createSeparator() {
+        const sep = document.createElement('hr');
+        sep.className = 'my-4';
+        return sep;
+    }
+
+    function createInputWrapper(label) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mb-3';
+        const labelEl = document.createElement('label');
+        labelEl.className = 'block text-xs font-medium text-gray-500 mb-1';
+        labelEl.textContent = label;
+        wrapper.appendChild(labelEl);
+        return wrapper;
+    }
+
+    function createTextInput(label, value, onChange, placeholder = '') {
+        const wrapper = createInputWrapper(label);
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = value || '';
+        input.placeholder = placeholder;
+        input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary';
+        input.oninput = (e) => onChange(e.target.value);
+        wrapper.appendChild(input);
+        return wrapper;
+    }
+
+    function createUrlInput(label, value, onChange) {
+        const wrapper = createInputWrapper(label);
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = value || '';
+        input.setAttribute('list', 'pages-datalist');
+        input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary';
+        input.oninput = (e) => onChange(e.target.value);
+        
+        const datalist = document.createElement('datalist');
+        datalist.id = 'pages-datalist';
+        Object.keys(projectData)
+            .filter(p => p.endsWith('.html'))
+            .forEach(page => {
+                const option = document.createElement('option');
+                option.value = page;
+                datalist.appendChild(option);
+            });
+
+        wrapper.appendChild(input);
+        wrapper.appendChild(datalist);
+        return wrapper;
+    }
+
+    function createNumberInput(label, value, onChange) {
+        const wrapper = createInputWrapper(label);
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.value = value || '';
+        input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary';
+        input.oninput = (e) => onChange(e.target.value);
+        wrapper.appendChild(input);
+        return wrapper;
+    }
+    
+    function createRangeInput(label, value, min, max, onChange) {
+        const wrapper = createInputWrapper(`${label}: ${value}`);
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = min;
+        input.max = max;
+        input.value = value || 100;
+        input.className = 'w-full';
+        input.oninput = (e) => {
+            wrapper.querySelector('label').textContent = `${label}: ${e.target.value}`;
+            onChange(e.target.value)
+        };
+        wrapper.appendChild(input);
+        return wrapper;
+    }
+
+    function createColorInput(label, value, onChange) {
+        const wrapper = createInputWrapper(label);
+        const colorContainer = document.createElement('div');
+        colorContainer.className = 'flex items-center space-x-2';
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.value = value || '#ffffff';
+        input.className = 'w-8 h-8 p-0 border-none rounded';
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.value = value || '#ffffff';
+        textInput.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm';
+        
+        input.oninput = (e) => {
+            textInput.value = e.target.value;
+            onChange(e.target.value);
+        };
+        textInput.oninput = (e) => {
+            input.value = e.target.value;
+            onChange(e.target.value);
+        }
+
+        colorContainer.appendChild(input);
+        colorContainer.appendChild(textInput);
+        wrapper.appendChild(colorContainer);
+        return wrapper;
+    }
+    
+    function createSelectInput(label, value, options, onChange) {
+        const wrapper = createInputWrapper(label);
+        const select = document.createElement('select');
+        select.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary';
+        options.forEach(opt => {
+            const optionEl = document.createElement('option');
+            optionEl.value = opt;
+            optionEl.textContent = opt;
+            if (opt === value) optionEl.selected = true;
+            select.appendChild(optionEl);
+        });
+        select.onchange = (e) => onChange(e.target.value);
+        wrapper.appendChild(select);
+        return wrapper;
+    }
+
+    function createFileUpload(label, accept, onFile) {
+        const wrapper = createInputWrapper(label);
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = accept;
+        input.className = 'text-sm';
+        input.onchange = (e) => {
+            if (e.target.files.length > 0) {
+                onFile(e.target.files[0]);
             }
         };
+        wrapper.appendChild(input);
+        return wrapper;
+    }
+    
+    function createAlignmentControls(element) {
+        const wrapper = createInputWrapper('Alignment');
+        const container = document.createElement('div');
+        container.className = 'flex items-center space-x-1';
+        ['left', 'center', 'right'].forEach(align => {
+            const btn = document.createElement('button');
+            btn.className = `p-2 rounded-md ${element.align === align ? 'bg-indigo-100 text-primary' : 'hover:bg-gray-100'}`;
+            btn.innerHTML = `<i data-lucide="align-${align}"></i>`;
+            btn.onclick = () => updateElement('align', align);
+            container.appendChild(btn);
+        });
+        wrapper.appendChild(container);
+        lucide.createIcons();
+        return wrapper;
+    }
 
-        const customComponentEvents = {
-            block: {
-                beforeOnPlayerPlace: { docs: "Fires before a player places this block." },
-                onPlayerInteract: { docs: "Fires when a player interacts with this block." },
-                onStepOn: { docs: "Fires when an entity steps on this block." },
-                onStepOff: { docs: "Fires when an entity steps off this block." },
-                onTick: { docs: "Fires every tick if the block is ticked." },
-                onRandomTick: { docs: "Fires on a random tick." },
-                onPlayerBreak: { docs: "Fires when a player breaks this block." },
-            },
-            item: {
-                onUse: { docs: "Fires when a player uses the item." },
-                onConsume: { docs: "Fires when a player finishes consuming the item (e.g. food)." },
-                onHitEntity: { docs: "Fires when this item is used to hit an entity." },
-                onMineBlock: { docs: "Fires when this item is used to mine a block." },
-                onCompleteUse: { docs: "Fires when the use duration is completed (e.g. drawing a bow)." },
-            }
+    function createDropdownItemsEditor(element) {
+        const wrapper = createInputWrapper('Menu Items');
+        const itemsContainer = document.createElement('div');
+        itemsContainer.className = 'space-y-2';
+
+        function renderItems() {
+            itemsContainer.innerHTML = '';
+            element.items.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex items-center space-x-2 bg-gray-50 p-2 rounded';
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.value = item.text;
+                textInput.placeholder = 'Item Text';
+                textInput.className = 'flex-grow px-2 py-1 border border-gray-300 rounded-md text-sm';
+                textInput.oninput = (e) => {
+                    element.items[index].text = e.target.value;
+                    renderCanvas();
+                };
+
+                const hrefInput = createUrlInput('', item.href, (val) => {
+                    element.items[index].href = val;
+                }).querySelector('input');
+                hrefInput.className = 'flex-grow px-2 py-1 border border-gray-300 rounded-md text-sm';
+                hrefInput.placeholder = 'URL or #';
+                
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4 text-gray-500 hover:text-red-500"></i>';
+                deleteBtn.onclick = () => {
+                    element.items.splice(index, 1);
+                    renderItems();
+                    renderCanvas();
+                };
+
+                itemDiv.appendChild(textInput);
+                itemDiv.appendChild(hrefInput.parentElement);
+                itemDiv.appendChild(deleteBtn);
+                itemsContainer.appendChild(itemDiv);
+            });
+            lucide.createIcons();
+        }
+
+        const addItemBtn = document.createElement('button');
+        addItemBtn.className = 'btn-outline w-full py-1.5 rounded-md text-sm mt-2';
+        addItemBtn.textContent = '+ Add Item';
+        addItemBtn.onclick = () => {
+            element.items.push({text: 'New Item', href: '#'});
+            renderItems();
+            renderCanvas();
         };
         
-        const apiTree = document.getElementById('api-tree');
-        const configContent = document.getElementById('config-content');
-        const generateBtn = document.getElementById('generate-script-btn');
-        const codeOutput = document.getElementById('code-output');
-        const copyButton = document.getElementById('copy-button');
-        const clearButton = document.getElementById('clear-button');
-        let selectedMethod = null;
+        renderItems();
+        wrapper.appendChild(itemsContainer);
+        wrapper.appendChild(addItemBtn);
+        return wrapper;
+    }
 
-        function buildNav() {
-            for (const moduleName in apiData) {
-                const moduleData = apiData[moduleName];
-                const moduleElement = document.createElement('div');
-                
-                const moduleHeader = document.createElement('div');
-                moduleHeader.className = 'collapsible-header flex justify-between items-center cursor-pointer p-2 rounded-md hover:bg-[var(--bg-light)]';
-                moduleHeader.innerHTML = `<h3 class="text-lg font-semibold text-gray-300"><i class="${moduleData.icon} mr-2"></i>${moduleName}</h3><i class="chevron fa-solid fa-chevron-down text-gray-400"></i>`;
-                
-                const moduleContent = document.createElement('div');
-                moduleContent.className = 'pl-4';
+    function createLinkEditor(element) {
+        const wrapper = createInputWrapper('Element Link');
+        const linkData = element.link || { href: '', newTab: false };
 
-                moduleHeader.addEventListener('click', () => {
-                    moduleContent.classList.toggle('hidden');
-                    moduleHeader.classList.toggle('collapsed');
-                });
-                
-                moduleElement.appendChild(moduleHeader);
+        const urlInput = createUrlInput('', linkData.href, (val) => {
+            if (!element.link) element.link = {};
+            element.link.href = val;
+            renderCanvas(); // to show/hide badge
+        });
+        
+        const checkboxWrapper = document.createElement('div');
+        checkboxWrapper.className = 'flex items-center mt-2';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'link-new-tab';
+        checkbox.checked = linkData.newTab;
+        checkbox.className = 'h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary';
+        checkbox.onchange = (e) => {
+            if (!element.link) element.link = {};
+            element.link.newTab = e.target.checked;
+        };
+        const checkLabel = document.createElement('label');
+        checkLabel.htmlFor = 'link-new-tab';
+        checkLabel.textContent = 'Open in new tab';
+        checkLabel.className = 'ml-2 block text-sm text-gray-700';
+        
+        checkboxWrapper.appendChild(checkbox);
+        checkboxWrapper.appendChild(checkLabel);
+        
+        wrapper.appendChild(urlInput);
+        wrapper.appendChild(checkboxWrapper);
+        return wrapper;
+    }
+    
+    function createThemeManager() {
+        const wrapper = createInputWrapper('Website Theme');
+        const container = document.createElement('div');
+        container.className = 'flex items-center space-x-2';
+        
+        const select = createSelectInput('', projectData.currentTheme, Object.keys(projectData.themes), (val) => {
+            projectData.currentTheme = val;
+            updateAll();
+        }).querySelector('select');
+        select.className += ' flex-grow';
 
-                for (const className in moduleData.classes) {
-                    const classData = moduleData.classes[className];
-                    const classContainer = document.createElement('div');
-                    
-                    const classHeader = document.createElement('div');
-                    classHeader.className = 'collapsible-header flex justify-between items-center cursor-pointer p-2 rounded-md hover:bg-[var(--bg-light)]';
-                    classHeader.innerHTML = `<h4 class="text-md font-medium text-gray-400"><i class="${classData.icon} mr-2"></i>${className}</h4><i class="chevron fa-solid fa-chevron-down text-xs text-gray-500"></i>`;
-                    
-                    const methodList = document.createElement('ul');
-                    methodList.className = 'ml-4 border-l border-[var(--bg-light)] hidden';
+        const manageBtn = document.createElement('button');
+        manageBtn.className = 'btn-outline p-2 rounded-md';
+        manageBtn.innerHTML = '<i data-lucide="settings-2" class="w-4 h-4"></i>';
+        manageBtn.onclick = showThemeManagerModal;
 
-                    classHeader.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        methodList.classList.toggle('hidden');
-                        classHeader.classList.toggle('collapsed');
+        container.appendChild(select);
+        container.appendChild(manageBtn);
+        wrapper.appendChild(container);
+        lucide.createIcons();
+        return wrapper;
+    }
+
+
+    // --- DATA MUTATION & ACTIONS ---
+    function switchPage(pageName) {
+        currentPage = pageName;
+        selectedElementIndex = null;
+        updateAll();
+    }
+
+    function addPage() {
+        showModal('Add New Page', [
+            { type: 'text', name: 'pageName', label: 'Page Name (e.g., about)' }
+        ], (formData) => {
+            let name = (formData.pageName || `page${Object.keys(projectData).length + 1}`).trim().replace(/\s+/g, '-').toLowerCase();
+            if (!name.endsWith('.html')) name += '.html';
+            if (projectData[name]) {
+                alert('Page with this name already exists.');
+                return;
+            }
+            projectData[name] = { elements: [], styles: getDefaultStyles() };
+            switchPage(name);
+        });
+    }
+
+    function removePage(pageName) {
+         if (confirm(`Are you sure you want to delete ${pageName}?`)) {
+            delete projectData[pageName];
+            if (currentPage === pageName) {
+                switchPage('index.html');
+            } else {
+                renderPageList();
+            }
+        }
+    }
+
+    function addElement(type) {
+        const page = projectData[currentPage];
+        if (!page) return;
+
+        let newElement = { type, align: 'left' };
+        if (type === 'header') newElement.content = "Main Header";
+        if (type === 'subheader') newElement.content = "Sub-Header";
+        if (type === 'paragraph') newElement.content = "This is a paragraph of text. You can edit this content in the properties panel.";
+        if (type === 'image') { newElement.src = ""; newElement.scale = 100; }
+        if (type === 'video') newElement.src = "";
+        if (type === 'button') { newElement.text = "Clickable Button"; newElement.href = "#"; }
+        if (type === 'dropdown') { newElement.name = "Dropdown"; newElement.items = [{ text: "Item 1", href: "#"}, { text: "Item 2", href: "#"}]; }
+
+        page.elements.push(newElement);
+        selectElement(page.elements.length - 1);
+    }
+    
+    function selectElement(index) {
+        selectedElementIndex = index;
+        renderCanvas();
+        renderPropertiesPanel();
+    }
+    
+    function unselectElement() {
+        selectedElementIndex = null;
+        renderCanvas();
+        renderPropertiesPanel();
+    }
+
+    function deleteElement() {
+        if (selectedElementIndex !== null) {
+            projectData[currentPage].elements.splice(selectedElementIndex, 1);
+            selectedElementIndex = null;
+            updateAll();
+        }
+    }
+    
+    function updateElement(prop, value) {
+        if (selectedElementIndex !== null) {
+            projectData[currentPage].elements[selectedElementIndex][prop] = value;
+            renderCanvas();
+            renderPropertiesPanel();
+        }
+    }
+    
+    function updateStyle(prop, value) {
+        projectData[currentPage].styles[prop] = value;
+        renderCanvas();
+        renderPropertiesPanel();
+    }
+    
+    function moveElement(fromIndex, toIndex) {
+        const elements = projectData[currentPage].elements;
+        const [movedElement] = elements.splice(fromIndex, 1);
+        elements.splice(toIndex, 0, movedElement);
+        selectElement(toIndex);
+    }
+
+
+    // --- DRAG & DROP ---
+    let draggedItem = null;
+    function setupDragAndDrop() {
+        canvas.addEventListener('dragover', handleCanvasDragOver);
+        canvas.addEventListener('drop', handleDrop);
+
+        const elements = canvas.querySelectorAll('.element-frame');
+        elements.forEach(el => {
+            el.addEventListener('dragstart', handleDragStart);
+            el.addEventListener('dragend', handleDragEnd);
+        });
+    }
+
+    function handleDragStart(e) {
+        if (e.target.classList.contains('element-frame')) {
+            draggedItem = e.target;
+            e.dataTransfer.effectAllowed = 'move';
+            setTimeout(() => {
+                draggedItem.classList.add('dragging');
+            }, 0);
+        } else {
+            e.preventDefault();
+        }
+    }
+    
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.element-frame:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function handleCanvasDragOver(e) {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(canvas, e.clientY);
+        const placeholder = document.querySelector('.placeholder');
+        
+        if (!placeholder) {
+            const newPlaceholder = document.createElement('div');
+            newPlaceholder.className = 'placeholder';
+            if (afterElement == null) {
+                canvas.appendChild(newPlaceholder);
+            } else {
+                canvas.insertBefore(newPlaceholder, afterElement);
+            }
+        } else {
+            if (afterElement == null) {
+                canvas.appendChild(placeholder);
+            } else {
+                canvas.insertBefore(placeholder, afterElement);
+            }
+        }
+    }
+    
+    function handleDrop(e) {
+        e.preventDefault();
+        const placeholder = canvas.querySelector('.placeholder');
+        if (!placeholder || !draggedItem) return;
+
+        const fromIndex = parseInt(draggedItem.dataset.index, 10);
+        
+        const children = Array.from(canvas.children).filter(child => 
+            child.classList.contains('element-frame') || child.classList.contains('placeholder')
+        );
+        let toIndex = children.indexOf(placeholder);
+
+        const originalItemInFilteredArray = children.indexOf(draggedItem);
+        if (originalItemInFilteredArray !== -1 && originalItemInFilteredArray < toIndex) {
+            toIndex--;
+        }
+        
+        placeholder.remove();
+        if (fromIndex !== toIndex) {
+            moveElement(fromIndex, toIndex);
+        } else {
+            renderCanvas();
+        }
+    }
+
+    function handleDragEnd(e) {
+        document.querySelectorAll('.placeholder').forEach(p => p.remove());
+        if (draggedItem) {
+            draggedItem.classList.remove('dragging');
+        }
+        draggedItem = null;
+        renderCanvas();
+    }
+    
+    // --- FILE HANDLING ---
+    function saveProject() {
+        const dataStr = JSON.stringify({ projectData, images }, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'website-project.wsb';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function loadProject(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                projectData = data.projectData;
+                images = data.images || {};
+                currentPage = 'index.html';
+                selectedElementIndex = null;
+                projectNameEl.textContent = file.name.replace('.wsb', '');
+                updateAll();
+            } catch (err) {
+                alert('Error: Invalid project file.');
+                console.error(err);
+            }
+        };
+        reader.readAsText(file);
+        loadProjectInput.value = '';
+    }
+    
+    function generateWebsite() {
+        const zip = new JSZip();
+        const assets = zip.folder("assets");
+        const usedImages = new Set();
+        
+        Object.entries(projectData).forEach(([pageName, pageData]) => {
+            if (typeof pageData !== 'object' || !pageData.elements) return;
+             pageData.elements.forEach(el => {
+                if (el.type === 'image' && el.src && images[el.src]) {
+                    usedImages.add(el.src);
+                }
+            });
+        });
+
+        usedImages.forEach(imgName => {
+            const base64Data = images[imgName].split(',')[1];
+            assets.file(imgName, base64Data, { base64: true });
+        });
+
+        Object.entries(projectData).forEach(([pageName, pageData]) => {
+            if (pageName.endsWith('.html')) {
+                zip.file(pageName, generatePageHTML(pageName, pageData));
+            }
+        });
+
+        zip.generateAsync({ type: "blob" })
+            .then(function(content) {
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "website.zip";
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+    }
+
+    function generatePageHTML(pageName, pageData) {
+        const styles = pageData.styles;
+        const theme = projectData.themes[projectData.currentTheme];
+        const title = pageName.replace('.html', '').replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        let bodyContent = "";
+        for (const el of pageData.elements) {
+            const alignStyle = `text-align: ${el.align || 'left'};`;
+            let elementHTML = '';
+
+            switch (el.type) {
+                case 'header': elementHTML = `<h1 style="font-size:${el.fontSize || styles.headerFontSize}px; font-weight: bold;">${el.content}</h1>`; break;
+                case 'subheader': elementHTML = `<h2 style="font-size:${el.fontSize || styles.subHeaderFontSize}px; font-weight: bold;">${el.content}</h2>`; break;
+                case 'paragraph': elementHTML = `<p style="font-size:${el.fontSize || styles.paragraphFontSize}px;">${el.content}</p>`; break;
+                case 'button':
+                    elementHTML = `<a href="${el.href}" style="background-color:${theme.primary}; color:white; padding: 10px 20px; text-decoration:none; border-radius: 5px; display:inline-block;">${el.text}</a>`;
+                    break;
+                case 'image':
+                    if (el.src) {
+                        elementHTML = `<img src="assets/${el.src}" alt="Image" style="width:${el.scale || 100}%; max-width:100%; display:inline-block;">`;
+                    }
+                    break;
+                case 'video':
+                    if (el.src) {
+                        if (el.src.includes('youtube.com/embed') || el.src.includes('player.vimeo.com/video')) {
+                            elementHTML = `<iframe width="560" height="315" src="${el.src}" frameborder="0" allowfullscreen style="max-width:100%; display:inline-block;"></iframe>`;
+                        } else {
+                             elementHTML = `<video controls style="max-width:100%; display:inline-block;"><source src="assets/${el.src}"></video>`;
+                        }
+                    }
+                    break;
+                case 'dropdown':
+                    let itemsHTML = el.items.map(item => `<a href="${item.href}" style="display:block; padding: 8px 16px; color: ${theme['text-primary']}; text-decoration: none;">${item.text}</a>`).join('');
+                    elementHTML = `
+                        <div class="dropdown" style="position:relative; display:inline-block;">
+                            <button class="dropbtn" style="background-color:${theme['text-primary']}; color:white; padding: 12px; font-size: 16px; border:none; cursor:pointer;">${el.name}</button>
+                            <div class="dropdown-content" style="display:none; position:absolute; background-color:${theme.foreground}; min-width:160px; box-shadow:0 8px 16px 0 rgba(0,0,0,0.2); z-index:1;">
+                                ${itemsHTML}
+                            </div>
+                        </div>`;
+                    break;
+            }
+            
+            if (el.link && el.link.href) {
+                elementHTML = `<a href="${el.link.href}" ${el.link.newTab ? 'target="_blank"' : ''} style="text-decoration:none; color:inherit;">${elementHTML}</a>`;
+            }
+
+            bodyContent += `<div style="${alignStyle}; margin: 16px 0;">${elementHTML}</div>\n`;
+        }
+
+        const dropdownCSS = `
+            .dropdown:hover .dropdown-content { display: block; }
+            .dropdown-content a:hover { background-color: ${theme.background}; }
+        `;
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body {
+            background-color: ${theme.background};
+            color: ${theme['text-primary']};
+            font-family: "${styles.fontFamily}", sans-serif;
+            margin: 2em;
+        }
+        ${dropdownCSS}
+    </style>
+</head>
+<body>
+    ${bodyContent}
+</body>
+</html>`;
+    }
+
+    // --- MODALS ---
+    function showModal(title, content, showButtons = true, onSubmit) {
+        const modalContainer = document.getElementById('modalContainer');
+        modalContainer.innerHTML = ''; // Clear previous modals
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop';
+        const modal = document.createElement('div');
+        modal.className = 'modal-content';
+        modal.innerHTML = `<h2 class="text-lg font-bold mb-4">${title}</h2>`;
+        
+        const form = document.createElement('form');
+        form.className = 'space-y-4';
+        
+        if (typeof content === 'function') {
+            content(form); // For complex content
+        } else {
+            // For simple fields array
+            content.forEach(field => {
+                const wrapper = createInputWrapper(field.label);
+                const input = document.createElement('input');
+                input.type = field.type;
+                input.name = field.name;
+                input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm';
+                input.required = true;
+                wrapper.appendChild(input);
+                form.appendChild(wrapper);
+            });
+        }
+        
+        if (showButtons) {
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'flex justify-end space-x-2 mt-6';
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.className = 'btn-outline px-4 py-1.5 rounded-md text-sm';
+            cancelBtn.onclick = () => modalContainer.innerHTML = '';
+            const submitBtn = document.createElement('button');
+            submitBtn.type = 'submit';
+            submitBtn.textContent = 'OK';
+            submitBtn.className = 'btn-primary px-4 py-1.5 rounded-md text-sm';
+
+            btnContainer.appendChild(cancelBtn);
+            btnContainer.appendChild(submitBtn);
+            form.appendChild(btnContainer);
+        }
+        
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            if (onSubmit) onSubmit(data);
+            modalContainer.innerHTML = '';
+        };
+
+        modal.appendChild(form);
+        backdrop.appendChild(modal);
+        modalContainer.appendChild(backdrop);
+    }
+    
+    function showThemeManagerModal() {
+        showModal('Theme Manager', (form) => {
+            const themes = projectData.themes;
+            const themeKeys = ['primary', 'secondary', 'background', 'foreground', 'text-primary', 'text-secondary', 'accent'];
+            let selectedTheme = projectData.currentTheme;
+
+            const selector = createSelectInput('Select Theme to Edit', selectedTheme, Object.keys(themes), (val) => {
+                selectedTheme = val;
+                updateEditor();
+            }).querySelector('select');
+
+            const editor = document.createElement('div');
+            editor.className = 'grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 mt-4';
+            
+            function updateEditor() {
+                editor.innerHTML = '';
+                const theme = themes[selectedTheme];
+                const isDefault = selectedTheme === 'Default';
+
+                themeKeys.forEach(key => {
+                    const colorInput = createColorInput(key, theme[key], (val) => {
+                        if (isDefault) return;
+                        themes[selectedTheme][key] = val;
+                        applyTheme();
+                        renderCanvas(); // Force canvas re-render
                     });
 
-                    for (const methodName in classData.methods) {
-                        const methodItem = document.createElement('li');
-                        methodItem.className = 'nav-item text-sm cursor-pointer p-2 rounded-r-md';
-                        methodItem.textContent = methodName;
-                        methodItem.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            document.querySelectorAll('.nav-item.selected').forEach(el => el.classList.remove('selected'));
-                            e.target.classList.add('selected');
-                            displayConfig(moduleName, className, methodName);
-                        });
-                        methodList.appendChild(methodItem);
+                    if (isDefault) {
+                        colorInput.querySelectorAll('input').forEach(i => i.disabled = true);
                     }
-                    classContainer.appendChild(classHeader);
-                    classContainer.appendChild(methodList);
-                    moduleContent.appendChild(classContainer);
+                    editor.appendChild(colorInput);
+                });
+                
+                if (isDefault) {
+                    const notice = document.createElement('p');
+                    notice.className = 'text-xs text-gray-500 col-span-2 text-center mt-2';
+                    notice.textContent = 'Default theme is read-only. Create a new theme to customize colors.';
+                    editor.appendChild(notice);
                 }
-                moduleElement.appendChild(moduleContent);
-                apiTree.appendChild(moduleElement);
             }
-        }
-        
-       function displayConfig(moduleName, className, methodName) {
-            selectedMethod = apiData[moduleName].classes[className].methods[methodName];
-            configContent.innerHTML = '';
-
-            const title = document.createElement('h3');
-            title.className = 'text-2xl font-bold text-white mb-1';
-            title.textContent = `${className}.${methodName}()`;
-            configContent.appendChild(title);
             
-            const docs = document.createElement('p');
-            docs.className = 'text-gray-400 mb-6';
-            docs.textContent = selectedMethod.docs;
-            configContent.appendChild(docs);
-
-            const form = document.createElement('form');
-            form.id = 'param-form';
-            form.className = 'space-y-4';
-            form.addEventListener('submit', e => e.preventDefault());
-
-            selectedMethod.params.forEach(param => {
-                const paramDiv = document.createElement('div');
-                
-                const label = document.createElement('label');
-                label.className = 'block text-sm font-medium mb-1';
-                label.textContent = `${param.name}${param.optional ? ' (optional)' : ''}`;
-                paramDiv.appendChild(label);
-                
-                let input;
-
-                if (param.type === 'custom_block_events' || param.type === 'custom_item_events') {
-                    input = document.createElement('div');
-                    input.dataset.paramName = param.name;
-                    input.dataset.type = 'custom_events';
-                    const eventType = param.type === 'custom_block_events' ? 'block' : 'item';
-                    const events = customComponentEvents[eventType];
-                    
-                    for(const eventName in events) {
-                        const eventDiv = document.createElement('div');
-                        eventDiv.className = 'mt-2';
-                        const checkboxLabel = document.createElement('label');
-                        checkboxLabel.className = 'flex items-center space-x-2 text-sm';
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.dataset.eventName = eventName;
-                        checkboxLabel.appendChild(checkbox);
-                        const span = document.createElement('span');
-                        span.textContent = `${eventName} - ${events[eventName].docs}`;
-                        checkboxLabel.appendChild(span);
-                        
-                        const codeTextarea = document.createElement('textarea');
-                        codeTextarea.className = 'w-full h-24 code-editor text-sm mt-1 hidden';
-                        codeTextarea.placeholder = `// Code for ${eventName} event...\nconst { block, player } = event;`;
-                        codeTextarea.dataset.eventName = eventName;
-
-                        checkbox.addEventListener('change', () => {
-                            codeTextarea.classList.toggle('hidden', !checkbox.checked);
-                        });
-
-                        eventDiv.appendChild(checkboxLabel);
-                        eventDiv.appendChild(codeTextarea);
-                        input.appendChild(eventDiv);
-                    }
-
+            const newThemeContainer = document.createElement('div');
+            newThemeContainer.className = 'flex items-center space-x-2 mt-4';
+            const newThemeName = document.createElement('input');
+            newThemeName.type = 'text';
+            newThemeName.placeholder = 'New Theme Name';
+            newThemeName.className = 'flex-grow px-2 py-1.5 border border-gray-300 rounded-md text-sm';
+            const addThemeBtn = document.createElement('button');
+            addThemeBtn.type = 'button';
+            addThemeBtn.textContent = 'Add Theme';
+            addThemeBtn.className = 'btn-secondary px-3 py-1.5 rounded-md text-sm';
+            addThemeBtn.onclick = () => {
+                const name = newThemeName.value.trim();
+                if (name && !themes[name]) {
+                    themes[name] = { ...themes[selectedTheme] }; // clone current
+                    projectData.currentTheme = name;
+                    form.parentElement.parentElement.remove(); // close and reopen
+                    showThemeManagerModal();
+                    updateAll();
                 } else {
-                    switch(param.type) {
-                        case 'Vector3':
-                            input = document.createElement('div');
-                            input.className = 'grid grid-cols-3 gap-2';
-                            input.innerHTML = `
-                                <input type="number" data-name="${param.name}-x" placeholder="X" value="0" class="w-full">
-                                <input type="number" data-name="${param.name}-y" placeholder="Y" value="0" class="w-full">
-                                <input type="number" data-name="${param.name}-z" placeholder="Z" value="0" class="w-full">
-                            `;
-                            input.dataset.type = 'Vector3';
-                            input.dataset.paramName = param.name;
-                            break;
-                        case 'json':
-                        case 'code':
-                            input = document.createElement('textarea');
-                            input.placeholder = param.placeholder || '{}';
-                            input.className = "w-full h-24 code-editor text-sm";
-                            if (param.placeholder) input.value = param.placeholder;
-                            break;
-                        case 'array':
-                            input = document.createElement('input');
-                            input.type = 'text';
-                            input.placeholder = param.placeholder || '';
-                            break;
-                        case 'enum':
-                            input = document.createElement('select');
-                            param.options.forEach(opt => {
-                                const option = document.createElement('option');
-                                option.value = opt;
-                                option.textContent = opt;
-                                input.appendChild(option);
-                            });
-                            break;
-                        case 'target':
-                        default:
-                            input = document.createElement('input');
-                            input.type = param.type === 'number' ? 'number' : 'text';
-                            input.placeholder = param.placeholder || '';
-                            if ((param.type === 'number' || param.type === 'string') && param.placeholder) {
-                                input.value = param.placeholder;
-                            }
-                    }
-                    if (input.tagName !== 'DIV') {
-                        input.dataset.paramName = param.name;
-                    }
+                    alert('Invalid or duplicate theme name.');
                 }
-                
-                paramDiv.appendChild(input);
-
-                const paramDocs = document.createElement('p');
-                paramDocs.className = 'text-xs text-gray-500 mt-1';
-                paramDocs.textContent = param.docs;
-                paramDiv.appendChild(paramDocs);
-                
-                form.appendChild(paramDiv);
-            });
-
-            configContent.appendChild(form);
-            generateBtn.disabled = false;
-        }
-
-        generateBtn.addEventListener('click', () => {
-            if (!selectedMethod) return;
-
-            const form = document.getElementById('param-form');
-            const values = {};
-
-            selectedMethod.params.forEach(param => {
-                const el = form.querySelector(`[data-param-name="${param.name}"]`);
-                if(el) {
-                    if (el.dataset.type === 'Vector3') {
-                         const x = form.querySelector(`[data-name="${param.name}-x"]`).value;
-                         const y = form.querySelector(`[data-name="${param.name}-y"]`).value;
-                         const z = form.querySelector(`[data-name="${param.name}-z"]`).value;
-                         values[param.name] = `{ x: ${x || 0}, y: ${y || 0}, z: ${z || 0} }`;
-                    } else if (el.dataset.type === 'custom_events') {
-                        values[param.name] = {};
-                        el.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
-                            const eventName = checkbox.dataset.eventName;
-                            const textarea = el.querySelector(`textarea[data-event-name="${eventName}"]`);
-                            values[param.name][eventName] = textarea.value.split('\n').map(line => `    ${line}`).join('\n').trim();
-                        });
-                    } else if(el.type === 'number') {
-                        values[param.name] = el.value || 0;
-                    } else {
-                        values[param.name] = el.value;
-                    }
-                }
-            });
-
-            const generatedCode = selectedMethod.template(values).trim();
-            const warning = `// WARNING: This is a powerful script. Always test in a non-essential world first.`;
+            };
             
-            if (generatedCode.includes('// WARNING')) {
-                 codeOutput.value = generatedCode;
-            } else if (!generatedCode.toLowerCase().includes('get') && !generatedCode.includes('import { variables }') && !generatedCode.includes('import { secrets }')) {
-                codeOutput.value = `${warning}\n${generatedCode}`;
-            } else {
-                 codeOutput.value = generatedCode;
-            }
-        });
+            newThemeContainer.appendChild(newThemeName);
+            newThemeContainer.appendChild(addThemeBtn);
 
-        copyButton.addEventListener('click', () => {
-            if(!codeOutput.value) return;
-            codeOutput.select();
-            document.execCommand('copy');
-            copyButton.textContent = 'Copied!';
-            setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
-        });
-        
-        clearButton.addEventListener('click', () => { codeOutput.value = ''; });
+            form.appendChild(selector.parentElement);
+            form.appendChild(editor);
+            form.appendChild(newThemeContainer);
+            updateEditor();
 
-        buildNav();
-    </script>
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.textContent = 'Done';
+            closeBtn.className = 'btn-primary px-4 py-1.5 rounded-md text-sm float-right mt-4';
+            closeBtn.onclick = () => form.parentElement.parentElement.remove();
+            form.appendChild(closeBtn);
+
+        }, false);
+    }
+
+    // --- EVENT LISTENERS ---
+    addPageBtn.addEventListener('click', () => {
+        showModal('Add New Page', [{ type: 'text', name: 'pageName', label: 'Page Name (e.g., about)' }], true, addPage);
+    });
+    addElementBtns.forEach(btn => {
+        btn.addEventListener('click', () => addElement(btn.dataset.type));
+    });
+    canvas.addEventListener('click', (e) => {
+        if (e.target.id === 'canvas' || e.target.id === 'canvas-wrapper') {
+            unselectElement();
+        }
+    });
+
+    newProjectBtn.addEventListener('click', () => {
+        if(confirm('Are you sure you want to start a new project? Unsaved changes will be lost.')) {
+            newProject();
+        }
+    });
+    saveProjectBtn.addEventListener('click', saveProject);
+    loadProjectBtn.addEventListener('click', () => loadProjectInput.click());
+    loadProjectInput.addEventListener('change', loadProject);
+    generateWebsiteBtn.addEventListener('click', generateWebsite);
+
+    // --- KICK IT OFF ---
+    init();
+});
+</script>
+
 </body>
 </html>
+
+
+
+
