@@ -150,6 +150,9 @@
             let selectedElementIndex = null;
             let dragData = { element: null, index: -1 };
             let builderChatHistory = [];
+            
+            // --- IMPORTANT: PASTE YOUR API KEY HERE ---
+            const apiKey = "AIzaSyAswttOZbrNTdgPLxfhIJk1jpXjmVEjUb8"; 
 
             // --- INITIALIZATION ---
             function init() {
@@ -856,7 +859,7 @@
 
             // --- GEMINI API ---
             function getSystemPrompt() {
-                return `You are Omni-Bot, an expert AI assistant integrated into the Omni-Web Creator application. Your primary goal is to help users build websites by using the tools available to you.
+                return `You are Omni-Bot, an expert AI assistant integrated into the Omni-Web Creator application. Your primary goal is to help users build websites byusing the tools available to you.
 
 **CRITICAL RULES:**
 1.  **NEVER WRITE CODE.** Your only output is a single, valid, complete JSON array of action objects. Do not write any text, explanation, or markdown outside of this JSON array.
@@ -895,7 +898,12 @@ User's request will be provided next. Remember the critical rules. Respond ONLY 
             async function callBuilderAssistantAPI(userPrompt) {
                 geminiStatus.textContent = "Thinking...";
                 builderChatHistory.push({ role: "user", parts: [{ text: userPrompt }] });
-                const apiKey = "";
+                
+                if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
+                    geminiStatus.textContent = "Please add your Gemini API key in the script tag.";
+                    return;
+                }
+
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: builderChatHistory,
@@ -971,7 +979,9 @@ User's request will be provided next. Remember the critical rules. Respond ONLY 
             }
 
             async function callTextGeneratorAPI(prompt, retries = 3, delay = 1000) {
-                const apiKey = ""; 
+                 if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
+                    return "Please add your Gemini API key in the script tag to use this feature.";
+                }
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ parts: [{ text: prompt }] }], };
                 try {
@@ -1206,6 +1216,7 @@ User's request will be provided next. Remember the critical rules. Respond ONLY 
             loadProjectBtn.addEventListener('click', () => loadProjectInput.click());
             loadProjectInput.addEventListener('change', loadProject);
             generateWebsiteBtn.addEventListener('click', generateWebsite);
+            
             geminiBuilderForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const prompt = geminiBuilderInput.value.trim();
@@ -1223,5 +1234,4 @@ User's request will be provided next. Remember the critical rules. Respond ONLY 
 
 </body>
 </html>
-
 
