@@ -3,1248 +3,1225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omni-Web Creator - WYSIWYG Website Builder</title>
+    <title>Omni-Web Creator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Load libraries first -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <style>
-        :root {
-            --primary: #4f46e5;
-            --secondary: #10b981;
-            --background: #f3f4f6;
-            --foreground: #ffffff;
-            --text-primary: #1f2937;
-            --text-secondary: #4b5563;
-            --accent: #ec4899;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--background);
-        }
-        .control-panel { background-color: var(--foreground); }
-        .canvas-preview { background-color: var(--foreground); }
-        .btn-primary { background-color: var(--primary); color: white; transition: background-color 0.3s; }
-        .btn-primary:hover { filter: brightness(90%); }
-        .btn-secondary { background-color: var(--secondary); color: white; transition: background-color: 0.3s; }
-        .btn-secondary:hover { filter: brightness(90%); }
-        .btn-outline { border: 1px solid #d1d5db; color: var(--text-secondary); transition: all 0.3s; }
-        .btn-outline:hover { background-color: #e5e7eb; color: var(--text-primary); }
-        .element-frame {
-            transition: box-shadow 0.2s, border-color 0.2s;
-            cursor: grab;
-            position: relative;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .btn-primary { background-color: #4f46e5; color: white; transition: background-color 0.2s; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-secondary { background-color: #6b7280; color: white; transition: background-color 0.2s; }
+        .btn-secondary:hover { background-color: #4b5563; }
+        .btn-outline { border: 1px solid #d1d5db; color: #374151; transition: background-color 0.2s, color 0.2s; }
+        .btn-outline:hover { background-color: #f3f4f6; }
+        .gemini-btn { background: linear-gradient(to right, #4f46e5, #9333ea); color: white; }
+        #canvas { min-height: 400px; }
         .element-frame.selected {
-            box-shadow: 0 0 0 2px var(--primary);
-            border-color: var(--primary);
+            outline: 2px solid #4f46e5;
+            box-shadow: 0 0 10px rgba(79, 70, 229, 0.5);
         }
-        .element-frame:hover {
-            box-shadow: 0 0 0 2px #a5b4fc;
-        }
-        .placeholder {
-            height: 50px;
-            background-color: #e0e7ff;
-            border: 2px dashed #a5b4fc;
-            margin: 8px 0;
-            border-radius: 8px;
-        }
-        .dragging {
-            opacity: 0.5;
-            cursor: grabbing;
-        }
-        .modal-backdrop {
-            background-color: rgba(0,0,0,0.5);
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 50;
-        }
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            min-width: 300px;
-            max-width: 500px;
-        }
-        .link-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background-color: var(--accent);
-            color: white;
-            border-radius: 9999px;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+        .modal-content { background-color: white; padding: 24px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;}
+        .gemini-message.user { background-color: #eef2ff; text-align: right; }
+        .gemini-message.assistant { background-color: #f3f4f6; }
     </style>
 </head>
-<body class="overflow-hidden">
+<body class="bg-gray-100">
 
-    <div id="app" class="flex flex-col h-screen">
-        <!-- Header -->
-        <header class="bg-white shadow-md p-3 flex justify-between items-center z-10 flex-shrink-0">
-            <div class="flex items-center space-x-2">
-                <img src="https://i.imgur.com/4VOsU9q.png" alt="Omni-Web Creator Logo" class="h-8 w-8">
-                <h1 class="text-xl font-bold text-gray-800">Omni-Web Creator</h1>
-                <span id="projectName" class="text-sm text-gray-500 ml-4">New Project</span>
-            </div>
-            <div class="flex items-center space-x-2">
-                <button id="newProjectBtn" class="btn-outline px-3 py-1.5 rounded-md text-sm flex items-center space-x-2"><i data-lucide="file-plus-2"></i><span>New</span></button>
-                <button id="saveProjectBtn" class="btn-outline px-3 py-1.5 rounded-md text-sm flex items-center space-x-2"><i data-lucide="save"></i><span>Save</span></button>
-                <button id="loadProjectBtn" class="btn-outline px-3 py-1.5 rounded-md text-sm flex items-center space-x-2"><i data-lucide="folder-open"></i><span>Load</span></button>
-                <input type="file" id="loadProjectInput" class="hidden" accept=".wsb">
-                <button id="generateWebsiteBtn" class="btn-primary px-4 py-1.5 rounded-md text-sm font-semibold flex items-center space-x-2"><i data-lucide="download-cloud"></i><span>Export Website</span></button>
-            </div>
-        </header>
+<div id="app" class="flex flex-col h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-md p-3 flex justify-between items-center z-10 flex-shrink-0">
+        <div class="flex items-center space-x-2">
+            <img src="https://i.imgur.com/4VOsU9q.png" alt="Omni-Web Creator Logo" class="h-10 w-10">
+            <h1 class="text-xl font-bold text-gray-800">Omni-Web Creator</h1>
+            <span id="projectName" class="text-sm text-gray-500 ml-4">New Project</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button id="newProjectBtn" class="btn-outline px-3 py-1.5 rounded-md text-sm">New</button>
+            <button id="saveProjectBtn" class="btn-outline px-3 py-1.5 rounded-md text-sm">Save</button>
+            <button id="loadProjectBtn" class="btn-outline px-3 py-1.5 rounded-md text-sm">Load</button>
+            <button id="generateWebsiteBtn" class="btn-primary px-4 py-1.5 rounded-md text-sm font-semibold">Export Website</button>
+        </div>
+    </header>
 
-        <!-- Main Content -->
-        <main class="flex flex-1 overflow-hidden">
-            <!-- Left Controls Panel -->
-            <aside class="control-panel w-80 p-4 overflow-y-auto flex-shrink-0 border-r border-gray-200">
-                <!-- Pages Section -->
-                <div class="mb-6">
-                    <h2 class="text-sm font-semibold text-gray-600 mb-2">PAGES</h2>
-                    <div id="pageList" class="space-y-1 mb-2"></div>
-                    <button id="addPageBtn" class="w-full btn-outline py-2 rounded-md text-sm">+ Add New Page</button>
+    <!-- Main Content -->
+    <main class="flex-1 flex overflow-hidden">
+        <!-- Left Panel -->
+        <aside class="w-80 bg-white p-4 overflow-y-auto flex-shrink-0 border-r">
+            <!-- Pages -->
+            <div class="mb-6">
+                <h2 class="font-semibold mb-2">PAGES</h2>
+                <div id="pageList" class="bg-gray-50 rounded-lg p-2 space-y-1"></div>
+                <button id="addPageBtn" class="w-full mt-2 btn-secondary text-sm py-2 rounded-md">+ Add New Page</button>
+            </div>
+            <!-- Elements -->
+            <div id="elements-panel" class="mb-6">
+                 <h2 class="font-semibold mb-2">ELEMENTS</h2>
+                 <div id="addElementBtns" class="grid grid-cols-2 gap-2">
+                     <button data-type="header" class="p-2 border rounded-lg text-center hover:bg-gray-100">H1</br>Header</button>
+                     <button data-type="subheader" class="p-2 border rounded-lg text-center hover:bg-gray-100">H2</br>Sub-Header</button>
+                     <button data-type="paragraph" class="p-2 border rounded-lg text-center hover:bg-gray-100">¶</br>Paragraph</button>
+                     <button data-type="image" class="p-2 border rounded-lg text-center hover:bg-gray-100">🖼️</br>Image</button>
+                     <button data-type="video" class="p-2 border rounded-lg text-center hover:bg-gray-100">📹</br>Video</button>
+                     <button data-type="button" class="p-2 border rounded-lg text-center hover:bg-gray-100">🔘</br>Button</button>
+                     <button data-type="dropdown" class="p-2 border rounded-lg text-center hover:bg-gray-100">▼</br>Dropdown</button>
+                 </div>
+            </div>
+            <!-- Properties -->
+            <div id="properties-panel">
+                <h2 class="font-semibold mb-2">PROPERTIES</h2>
+                <div id="properties-content" class="space-y-4">
+                    <p class="text-gray-500 text-sm">Select an element to see its properties.</p>
                 </div>
+            </div>
+        </aside>
 
-                <!-- Add Elements Section -->
-                <div class="mb-6">
-                    <h2 class="text-sm font-semibold text-gray-600 mb-2">ELEMENTS</h2>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="header"><i data-lucide="heading-1"></i><span class="text-xs mt-1">Header</span></button>
-                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="subheader"><i data-lucide="heading-2"></i><span class="text-xs mt-1">Sub-Header</span></button>
-                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="paragraph"><i data-lucide="pilcrow"></i><span class="text-xs mt-1">Paragraph</span></button>
-                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="image"><i data-lucide="image"></i><span class="text-xs mt-1">Image</span></button>
-                         <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="video"><i data-lucide="video"></i><span class="text-xs mt-1">Video</span></button>
-                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center" data-type="button"><i data-lucide="mouse-pointer-square"></i><span class="text-xs mt-1">Button</span></button>
-                        <button class="add-element-btn btn-outline p-2 rounded-md flex flex-col items-center col-span-2" data-type="dropdown"><i data-lucide="menu-square"></i><span class="text-xs mt-1">Dropdown Menu</span></button>
+        <!-- Center Canvas -->
+        <div class="flex-1 flex flex-col items-center justify-center p-4" id="canvas-bg">
+            <div id="canvas-wrapper" class="w-full h-full shadow-lg rounded-lg overflow-hidden flex flex-col bg-white">
+                <!-- Omni-Bot UI -->
+                <div id="gemini-builder-ui" class="p-3 border-b space-y-2">
+                    <!-- Bot Response Bubble -->
+                    <div class="flex items-start space-x-2">
+                        <img src="https://i.imgur.com/4VOsU9q.png" class="w-8 h-8 rounded-full flex-shrink-0" alt="Omni-Bot Avatar">
+                        <div class="flex-grow bg-gray-100 p-2 rounded-lg rounded-tl-none">
+                            <h3 class="text-xs font-semibold text-gray-900">Omni-Bot</h3>
+                            <p id="gemini-status" class="text-sm text-gray-700">How can I help you build?</p>
+                        </div>
                     </div>
+                    <!-- User Input Form -->
+                    <form id="gemini-builder-form" class="flex items-center space-x-2">
+                        <input type="text" id="gemini-builder-input" placeholder="Your instructions..." class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary">
+                        <button type="submit" class="gemini-btn px-4 py-1.5 rounded-md text-sm">Send</button>
+                    </form>
                 </div>
-
-                <!-- Global Styles / Properties Panel -->
-                <div id="propertiesPanel" class="space-y-4">
-                    <!-- This will be dynamically populated -->
-                </div>
-            </aside>
-
-            <!-- Center Canvas -->
-            <div class="flex-1 flex flex-col items-center justify-center p-4" id="canvas-bg">
-                <div id="canvas-wrapper" class="w-full h-full shadow-lg rounded-lg overflow-auto">
-                    <div id="canvas" class="p-8">
-                        <!-- Website elements will be rendered here -->
-                    </div>
+                <!-- Website Preview -->
+                <div class="flex-1 overflow-y-auto">
+                    <div id="canvas" class="p-4"></div>
                 </div>
             </div>
-        </main>
-        <!-- Footer -->
-        <footer class="text-center p-2 bg-gray-100 border-t border-gray-200 text-xs text-gray-500">
-            Made by king_of_coding, owned by Omni-Science
-        </footer>
-    </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="text-center text-xs text-gray-500 py-2 bg-white border-t">
+        Made by king_of_coding, owned by Omni-Science
+    </footer>
+</div>
 
-    <!-- Modals (hidden by default) -->
-    <div id="modalContainer"></div>
-
+<!-- Modal Container -->
+<div id="modalContainer"></div>
+<input type="file" id="loadProjectInput" class="hidden" accept=".wsb">
+<input type="file" id="uploadImageInput" class="hidden" accept="image/*">
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    lucide.createIcons();
+    // Using a standard script tag with an IIFE to prevent global scope pollution
+    // and avoid module loading issues with the external libraries.
+    (function() {
+        // The JSZip and saveAs libraries are loaded globally from the <head>
+        // and are available here as JSZip and saveAs.
 
-    // --- STATE MANAGEMENT ---
-    let projectData = {};
-    let currentPage = 'index.html';
-    let selectedElementIndex = null;
-    let images = {}; // Store image data as base64
-
-    // --- DOM REFERENCES ---
-    const pageList = document.getElementById('pageList');
-    const addPageBtn = document.getElementById('addPageBtn');
-    const canvas = document.getElementById('canvas');
-    const propertiesPanel = document.getElementById('propertiesPanel');
-    const addElementBtns = document.querySelectorAll('.add-element-btn');
-    const newProjectBtn = document.getElementById('newProjectBtn');
-    const saveProjectBtn = document.getElementById('saveProjectBtn');
-    const loadProjectBtn = document.getElementById('loadProjectBtn');
-    const loadProjectInput = document.getElementById('loadProjectInput');
-    const generateWebsiteBtn = document.getElementById('generateWebsiteBtn');
-    const projectNameEl = document.getElementById('projectName');
-
-    // --- INITIALIZATION ---
-    function init() {
-        newProject();
-    }
-
-    function newProject() {
-        projectData = {
-            "index.html": {
-                elements: [],
-                styles: getDefaultStyles()
-            },
-            themes: {
-                'Default': {
-                    primary: '#4f46e5',
-                    secondary: '#10b981',
-                    background: '#ffffff',
-                    foreground: '#f3f4f6',
-                    'text-primary': '#1f2937',
-                    'text-secondary': '#4b5563',
-                    accent: '#ec4899',
-                }
-            },
-            currentTheme: 'Default'
-        };
-        images = {};
-        currentPage = 'index.html';
-        selectedElementIndex = null;
-        projectNameEl.textContent = 'New Project';
-        updateAll();
-    }
-
-    function getDefaultStyles() {
-        return {
-            backgroundColor: "#FFFFFF",
-            fontColor: "#1f2937",
-            fontFamily: "Inter",
-            headerFontSize: 32,
-            subHeaderFontSize: 24,
-            paragraphFontSize: 16
-        };
-    }
-
-    // --- CORE RENDER FUNCTIONS ---
-    function updateAll() {
-        applyTheme();
-        renderPageList();
-        renderCanvas();
-        renderPropertiesPanel();
-    }
-
-    function applyTheme() {
-        const theme = projectData.themes[projectData.currentTheme];
-        if (!theme) return;
-        for (const [key, value] of Object.entries(theme)) {
-            document.documentElement.style.setProperty(`--${key}`, value);
-        }
-    }
-
-    function renderPageList() {
-        pageList.innerHTML = '';
-        Object.keys(projectData).filter(p => p !== 'themes' && p !== 'currentTheme').sort().forEach(pageName => {
-            const isActive = pageName === currentPage;
-            const pageItem = document.createElement('div');
-            pageItem.className = `flex justify-between items-center px-3 py-2 rounded-md cursor-pointer ${isActive ? 'bg-indigo-100 text-primary' : 'hover:bg-gray-100'}`;
-            pageItem.textContent = pageName;
-            pageItem.onclick = () => switchPage(pageName);
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENTS ---
+            const pageList = document.getElementById('pageList');
+            const addPageBtn = document.getElementById('addPageBtn');
+            const addElementBtns = document.querySelectorAll('#addElementBtns button');
+            const propertiesContent = document.getElementById('properties-content');
+            const canvas = document.getElementById('canvas');
+            const canvasBg = document.getElementById('canvas-bg');
+            const newProjectBtn = document.getElementById('newProjectBtn');
+            const saveProjectBtn = document.getElementById('saveProjectBtn');
+            const loadProjectBtn = document.getElementById('loadProjectBtn');
+            const loadProjectInput = document.getElementById('loadProjectInput');
+            const generateWebsiteBtn = document.getElementById('generateWebsiteBtn');
+            const projectNameEl = document.getElementById('projectName');
+            const geminiBuilderForm = document.getElementById('gemini-builder-form');
+            const geminiBuilderInput = document.getElementById('gemini-builder-input');
+            const geminiStatus = document.getElementById('gemini-status');
             
-            if (pageName !== 'index.html') {
-                const deleteBtn = document.createElement('button');
-                deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4 text-gray-500 hover:text-red-500"></i>';
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    removePage(pageName);
+            // --- APP STATE ---
+            let projectData = {};
+            let currentPage = 'index.html';
+            let selectedElementIndex = null;
+            let dragData = { element: null, index: -1 };
+            let builderChatHistory = [];
+
+            // --- INITIALIZATION ---
+            function init() {
+                newProject();
+            }
+            
+            function newProject() {
+                projectData = {
+                    "index.html": {
+                        elements: [],
+                    },
+                    themes: getDefaultThemes(),
+                    currentTheme: 'Default',
                 };
-                pageItem.appendChild(deleteBtn);
-            }
-            
-            pageList.appendChild(pageItem);
-        });
-        lucide.createIcons();
-    }
-
-    function renderCanvas() {
-        const page = projectData[currentPage];
-        if (!page) return;
-
-        // Apply global styles to canvas wrapper
-        const theme = projectData.themes[projectData.currentTheme];
-        document.getElementById('canvas-bg').style.backgroundColor = theme.foreground;
-        const canvasWrapper = document.getElementById('canvas-wrapper');
-        canvasWrapper.style.backgroundColor = theme.background;
-        canvasWrapper.style.color = theme['text-primary'];
-        canvasWrapper.style.fontFamily = page.styles.fontFamily;
-
-        canvas.innerHTML = '';
-        if (page.elements.length === 0) {
-            canvas.innerHTML = `
-                <div class="text-center text-gray-400 py-20">
-                    <p>Your page is empty.</p>
-                    <p class="text-sm">Click on an element from the left panel to add it here.</p>
-                </div>
-            `;
-        }
-
-        page.elements.forEach((element, index) => {
-            const elWrapper = document.createElement('div');
-            elWrapper.className = `element-frame p-2 border border-transparent rounded-lg ${selectedElementIndex === index ? 'selected' : ''}`;
-            elWrapper.draggable = true;
-            elWrapper.dataset.index = index;
-            elWrapper.style.textAlign = element.align || 'left';
-            
-            if (element.link && element.link.href) {
-                 const badge = document.createElement('div');
-                 badge.className = 'link-badge';
-                 badge.innerHTML = '<i data-lucide="link" class="w-3 h-3"></i>';
-                 elWrapper.appendChild(badge);
-            }
-            
-            elWrapper.addEventListener('click', (e) => {
-                e.stopPropagation();
-                selectElement(index);
-            });
-
-            const elContent = renderElement(element);
-            elWrapper.appendChild(elContent);
-            canvas.appendChild(elWrapper);
-        });
-        
-        lucide.createIcons();
-        setupDragAndDrop();
-    }
-    
-    function renderElement(element) {
-        const el = document.createElement('div');
-        el.style.display = 'inline-block';
-        el.style.textAlign = 'left'; // Reset inner content alignment
-        
-        const pageStyles = projectData[currentPage].styles;
-        
-        switch (element.type) {
-            case 'header':
-            case 'subheader':
-            case 'paragraph':
-                const tagName = { header: 'h1', subheader: 'h2', paragraph: 'p' }[element.type];
-                const textEl = document.createElement(tagName);
-                textEl.textContent = element.content;
-                
-                const defaultSize = { header: pageStyles.headerFontSize, subheader: pageStyles.subHeaderFontSize, paragraph: pageStyles.paragraphFontSize }[element.type];
-                textEl.style.fontSize = `${element.fontSize || defaultSize}px`;
-                if(element.type.includes('header')) textEl.style.fontWeight = 'bold';
-                
-                el.appendChild(textEl);
-                break;
-
-            case 'image':
-                const img = document.createElement('img');
-                img.src = images[element.src] || 'https://placehold.co/300x200/e0e7ff/a5b4fc?text=Image';
-                img.style.maxWidth = '100%';
-                img.style.width = `${element.scale || 100}%`;
-                el.appendChild(img);
-                break;
-
-            case 'video':
-                 const videoText = document.createElement('div');
-                 videoText.className = "p-4 border rounded-md bg-gray-100 text-gray-600";
-                 videoText.innerHTML = `<i data-lucide="video" class="inline-block mr-2"></i>Video Placeholder: ${element.src || 'No source'}`;
-                 el.appendChild(videoText);
-                 setTimeout(() => lucide.createIcons(), 0);
-                 break;
-
-            case 'button':
-                const btn = document.createElement('a'); // Use an anchor tag for semantics
-                btn.href = element.href || '#';
-                btn.textContent = element.text || 'Click Me';
-                btn.onclick = (e) => e.preventDefault(); // Prevent navigation in builder
-                btn.className = 'btn-primary px-4 py-2 rounded-md inline-block';
-                el.appendChild(btn);
-                break;
-                
-            case 'dropdown':
-                 const ddFrame = document.createElement('div');
-                 ddFrame.className = "inline-block relative";
-                 
-                 const ddButton = document.createElement('button');
-                 ddButton.textContent = element.name;
-                 ddButton.className = "text-white px-4 py-2 rounded-md";
-                 ddButton.style.backgroundColor = projectData.themes[projectData.currentTheme]['text-primary'];
-                 
-                 const ddContent = document.createElement('div');
-                 ddContent.className = "absolute bg-white shadow-lg rounded-md mt-1 py-1 hidden";
-                 element.items.forEach(item => {
-                     const itemLink = document.createElement('a');
-                     itemLink.href = item.href;
-                     itemLink.textContent = item.text;
-                     itemLink.className = "block px-4 py-2 text-gray-800 hover:bg-gray-100";
-                     ddContent.appendChild(itemLink);
-                 });
-                 
-                 ddFrame.appendChild(ddButton);
-                 ddFrame.appendChild(ddContent);
-                 
-                 ddButton.addEventListener('mouseover', () => ddContent.classList.remove('hidden'));
-                 ddFrame.addEventListener('mouseleave', () => ddContent.classList.add('hidden'));
-
-                 el.appendChild(ddFrame);
-                 break;
-        }
-        return el;
-    }
-
-
-    function renderPropertiesPanel() {
-        propertiesPanel.innerHTML = '';
-        const element = selectedElementIndex !== null ? projectData[currentPage].elements[selectedElementIndex] : null;
-
-        if (element) {
-            // Element specific properties
-            const title = document.createElement('h2');
-            title.className = 'text-sm font-semibold text-gray-600 mb-2 uppercase';
-            title.textContent = `${element.type} Properties`;
-            propertiesPanel.appendChild(title);
-
-            // Alignment
-            propertiesPanel.appendChild(createAlignmentControls(element));
-            propertiesPanel.appendChild(createSeparator());
-
-            switch(element.type) {
-                case 'header':
-                case 'subheader':
-                case 'paragraph':
-                    propertiesPanel.appendChild(createTextInput('Content', element.content, (val) => updateElement('content', val)));
-                    propertiesPanel.appendChild(createNumberInput('Font Size (px)', element.fontSize, (val) => updateElement('fontSize', parseInt(val, 10))));
-                    break;
-                case 'image':
-                    propertiesPanel.appendChild(createFileUpload('Image Source', 'image/*', (file) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            images[file.name] = e.target.result;
-                            updateElement('src', file.name);
-                        };
-                        reader.readAsDataURL(file);
-                    }));
-                    propertiesPanel.appendChild(createRangeInput('Scale (%)', element.scale || 100, 10, 200, (val) => updateElement('scale', parseInt(val, 10))));
-                    break;
-                case 'video':
-                    propertiesPanel.appendChild(createTextInput('Video URL', element.src, (val) => updateElement('src', val), 'YouTube, Vimeo, or file URL'));
-                    break;
-                case 'button':
-                    propertiesPanel.appendChild(createTextInput('Button Text', element.text, (val) => updateElement('text', val)));
-                    propertiesPanel.appendChild(createUrlInput('Link URL', element.href, (val) => updateElement('href', val)));
-                    break;
-                case 'dropdown':
-                    propertiesPanel.appendChild(createTextInput('Menu Name', element.name, (val) => updateElement('name', val)));
-                    propertiesPanel.appendChild(createSeparator());
-                    propertiesPanel.appendChild(createDropdownItemsEditor(element));
-                    break;
-            }
-            
-            // Add linking capabilities to all elements
-            propertiesPanel.appendChild(createSeparator());
-            propertiesPanel.appendChild(createLinkEditor(element));
-
-            propertiesPanel.appendChild(createSeparator());
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'w-full btn-outline border-red-300 text-red-600 hover:bg-red-50 py-2 rounded-md text-sm';
-            deleteBtn.innerHTML = '<i data-lucide="trash-2" class="inline-block w-4 h-4 mr-2"></i>Delete Element';
-            deleteBtn.onclick = deleteElement;
-            propertiesPanel.appendChild(deleteBtn);
-            lucide.createIcons();
-
-        } else {
-            // Global styles
-            const title = document.createElement('h2');
-            title.className = 'text-sm font-semibold text-gray-600 mb-2 uppercase';
-            title.textContent = 'Global Page Styles';
-            propertiesPanel.appendChild(title);
-            
-            propertiesPanel.appendChild(createThemeManager());
-            propertiesPanel.appendChild(createSeparator());
-
-            const pageStyles = projectData[currentPage].styles;
-            const fonts = ['Inter', 'Arial', 'Georgia', 'Times New Roman', 'Verdana'];
-            propertiesPanel.appendChild(createSelectInput('Font Family', pageStyles.fontFamily, fonts, (val) => updateStyle('fontFamily', val)));
-        }
-    }
-
-    // --- PROPERTY PANEL UI BUILDERS ---
-    function createSeparator() {
-        const sep = document.createElement('hr');
-        sep.className = 'my-4';
-        return sep;
-    }
-
-    function createInputWrapper(label) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'mb-3';
-        const labelEl = document.createElement('label');
-        labelEl.className = 'block text-xs font-medium text-gray-500 mb-1';
-        labelEl.textContent = label;
-        wrapper.appendChild(labelEl);
-        return wrapper;
-    }
-
-    function createTextInput(label, value, onChange, placeholder = '') {
-        const wrapper = createInputWrapper(label);
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = value || '';
-        input.placeholder = placeholder;
-        input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary';
-        input.oninput = (e) => onChange(e.target.value);
-        wrapper.appendChild(input);
-        return wrapper;
-    }
-
-    function createUrlInput(label, value, onChange) {
-        const wrapper = createInputWrapper(label);
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = value || '';
-        input.setAttribute('list', 'pages-datalist');
-        input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary';
-        input.oninput = (e) => onChange(e.target.value);
-        
-        const datalist = document.createElement('datalist');
-        datalist.id = 'pages-datalist';
-        Object.keys(projectData)
-            .filter(p => p.endsWith('.html'))
-            .forEach(page => {
-                const option = document.createElement('option');
-                option.value = page;
-                datalist.appendChild(option);
-            });
-
-        wrapper.appendChild(input);
-        wrapper.appendChild(datalist);
-        return wrapper;
-    }
-
-    function createNumberInput(label, value, onChange) {
-        const wrapper = createInputWrapper(label);
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.value = value || '';
-        input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary';
-        input.oninput = (e) => onChange(e.target.value);
-        wrapper.appendChild(input);
-        return wrapper;
-    }
-    
-    function createRangeInput(label, value, min, max, onChange) {
-        const wrapper = createInputWrapper(`${label}: ${value}`);
-        const input = document.createElement('input');
-        input.type = 'range';
-        input.min = min;
-        input.max = max;
-        input.value = value || 100;
-        input.className = 'w-full';
-        input.oninput = (e) => {
-            wrapper.querySelector('label').textContent = `${label}: ${e.target.value}`;
-            onChange(e.target.value)
-        };
-        wrapper.appendChild(input);
-        return wrapper;
-    }
-
-    function createColorInput(label, value, onChange) {
-        const wrapper = createInputWrapper(label);
-        const colorContainer = document.createElement('div');
-        colorContainer.className = 'flex items-center space-x-2';
-        const input = document.createElement('input');
-        input.type = 'color';
-        input.value = value || '#ffffff';
-        input.className = 'w-8 h-8 p-0 border-none rounded';
-        const textInput = document.createElement('input');
-        textInput.type = 'text';
-        textInput.value = value || '#ffffff';
-        textInput.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm';
-        
-        input.oninput = (e) => {
-            textInput.value = e.target.value;
-            onChange(e.target.value);
-        };
-        textInput.oninput = (e) => {
-            input.value = e.target.value;
-            onChange(e.target.value);
-        }
-
-        colorContainer.appendChild(input);
-        colorContainer.appendChild(textInput);
-        wrapper.appendChild(colorContainer);
-        return wrapper;
-    }
-    
-    function createSelectInput(label, value, options, onChange) {
-        const wrapper = createInputWrapper(label);
-        const select = document.createElement('select');
-        select.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary';
-        options.forEach(opt => {
-            const optionEl = document.createElement('option');
-            optionEl.value = opt;
-            optionEl.textContent = opt;
-            if (opt === value) optionEl.selected = true;
-            select.appendChild(optionEl);
-        });
-        select.onchange = (e) => onChange(e.target.value);
-        wrapper.appendChild(select);
-        return wrapper;
-    }
-
-    function createFileUpload(label, accept, onFile) {
-        const wrapper = createInputWrapper(label);
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = accept;
-        input.className = 'text-sm';
-        input.onchange = (e) => {
-            if (e.target.files.length > 0) {
-                onFile(e.target.files[0]);
-            }
-        };
-        wrapper.appendChild(input);
-        return wrapper;
-    }
-    
-    function createAlignmentControls(element) {
-        const wrapper = createInputWrapper('Alignment');
-        const container = document.createElement('div');
-        container.className = 'flex items-center space-x-1';
-        ['left', 'center', 'right'].forEach(align => {
-            const btn = document.createElement('button');
-            btn.className = `p-2 rounded-md ${element.align === align ? 'bg-indigo-100 text-primary' : 'hover:bg-gray-100'}`;
-            btn.innerHTML = `<i data-lucide="align-${align}"></i>`;
-            btn.onclick = () => updateElement('align', align);
-            container.appendChild(btn);
-        });
-        wrapper.appendChild(container);
-        lucide.createIcons();
-        return wrapper;
-    }
-
-    function createDropdownItemsEditor(element) {
-        const wrapper = createInputWrapper('Menu Items');
-        const itemsContainer = document.createElement('div');
-        itemsContainer.className = 'space-y-2';
-
-        function renderItems() {
-            itemsContainer.innerHTML = '';
-            element.items.forEach((item, index) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'flex items-center space-x-2 bg-gray-50 p-2 rounded';
-                const textInput = document.createElement('input');
-                textInput.type = 'text';
-                textInput.value = item.text;
-                textInput.placeholder = 'Item Text';
-                textInput.className = 'flex-grow px-2 py-1 border border-gray-300 rounded-md text-sm';
-                textInput.oninput = (e) => {
-                    element.items[index].text = e.target.value;
-                    renderCanvas();
-                };
-
-                const hrefInput = createUrlInput('', item.href, (val) => {
-                    element.items[index].href = val;
-                }).querySelector('input');
-                hrefInput.className = 'flex-grow px-2 py-1 border border-gray-300 rounded-md text-sm';
-                hrefInput.placeholder = 'URL or #';
-                
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4 text-gray-500 hover:text-red-500"></i>';
-                deleteBtn.onclick = () => {
-                    element.items.splice(index, 1);
-                    renderItems();
-                    renderCanvas();
-                };
-
-                itemDiv.appendChild(textInput);
-                itemDiv.appendChild(hrefInput.parentElement);
-                itemDiv.appendChild(deleteBtn);
-                itemsContainer.appendChild(itemDiv);
-            });
-            lucide.createIcons();
-        }
-
-        const addItemBtn = document.createElement('button');
-        addItemBtn.className = 'btn-outline w-full py-1.5 rounded-md text-sm mt-2';
-        addItemBtn.textContent = '+ Add Item';
-        addItemBtn.onclick = () => {
-            element.items.push({text: 'New Item', href: '#'});
-            renderItems();
-            renderCanvas();
-        };
-        
-        renderItems();
-        wrapper.appendChild(itemsContainer);
-        wrapper.appendChild(addItemBtn);
-        return wrapper;
-    }
-
-    function createLinkEditor(element) {
-        const wrapper = createInputWrapper('Element Link');
-        const linkData = element.link || { href: '', newTab: false };
-
-        const urlInput = createUrlInput('', linkData.href, (val) => {
-            if (!element.link) element.link = {};
-            element.link.href = val;
-            renderCanvas(); // to show/hide badge
-        });
-        
-        const checkboxWrapper = document.createElement('div');
-        checkboxWrapper.className = 'flex items-center mt-2';
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = 'link-new-tab';
-        checkbox.checked = linkData.newTab;
-        checkbox.className = 'h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary';
-        checkbox.onchange = (e) => {
-            if (!element.link) element.link = {};
-            element.link.newTab = e.target.checked;
-        };
-        const checkLabel = document.createElement('label');
-        checkLabel.htmlFor = 'link-new-tab';
-        checkLabel.textContent = 'Open in new tab';
-        checkLabel.className = 'ml-2 block text-sm text-gray-700';
-        
-        checkboxWrapper.appendChild(checkbox);
-        checkboxWrapper.appendChild(checkLabel);
-        
-        wrapper.appendChild(urlInput);
-        wrapper.appendChild(checkboxWrapper);
-        return wrapper;
-    }
-    
-    function createThemeManager() {
-        const wrapper = createInputWrapper('Website Theme');
-        const container = document.createElement('div');
-        container.className = 'flex items-center space-x-2';
-        
-        const select = createSelectInput('', projectData.currentTheme, Object.keys(projectData.themes), (val) => {
-            projectData.currentTheme = val;
-            updateAll();
-        }).querySelector('select');
-        select.className += ' flex-grow';
-
-        const manageBtn = document.createElement('button');
-        manageBtn.className = 'btn-outline p-2 rounded-md';
-        manageBtn.innerHTML = '<i data-lucide="settings-2" class="w-4 h-4"></i>';
-        manageBtn.onclick = showThemeManagerModal;
-
-        container.appendChild(select);
-        container.appendChild(manageBtn);
-        wrapper.appendChild(container);
-        lucide.createIcons();
-        return wrapper;
-    }
-
-
-    // --- DATA MUTATION & ACTIONS ---
-    function switchPage(pageName) {
-        currentPage = pageName;
-        selectedElementIndex = null;
-        updateAll();
-    }
-
-    function addPage() {
-        showModal('Add New Page', [
-            { type: 'text', name: 'pageName', label: 'Page Name (e.g., about)' }
-        ], (formData) => {
-            let name = (formData.pageName || `page${Object.keys(projectData).length + 1}`).trim().replace(/\s+/g, '-').toLowerCase();
-            if (!name.endsWith('.html')) name += '.html';
-            if (projectData[name]) {
-                alert('Page with this name already exists.');
-                return;
-            }
-            projectData[name] = { elements: [], styles: getDefaultStyles() };
-            switchPage(name);
-        });
-    }
-
-    function removePage(pageName) {
-         if (confirm(`Are you sure you want to delete ${pageName}?`)) {
-            delete projectData[pageName];
-            if (currentPage === pageName) {
-                switchPage('index.html');
-            } else {
-                renderPageList();
-            }
-        }
-    }
-
-    function addElement(type) {
-        const page = projectData[currentPage];
-        if (!page) return;
-
-        let newElement = { type, align: 'left' };
-        if (type === 'header') newElement.content = "Main Header";
-        if (type === 'subheader') newElement.content = "Sub-Header";
-        if (type === 'paragraph') newElement.content = "This is a paragraph of text. You can edit this content in the properties panel.";
-        if (type === 'image') { newElement.src = ""; newElement.scale = 100; }
-        if (type === 'video') newElement.src = "";
-        if (type === 'button') { newElement.text = "Clickable Button"; newElement.href = "#"; }
-        if (type === 'dropdown') { newElement.name = "Dropdown"; newElement.items = [{ text: "Item 1", href: "#"}, { text: "Item 2", href: "#"}]; }
-
-        page.elements.push(newElement);
-        selectElement(page.elements.length - 1);
-    }
-    
-    function selectElement(index) {
-        selectedElementIndex = index;
-        renderCanvas();
-        renderPropertiesPanel();
-    }
-    
-    function unselectElement() {
-        selectedElementIndex = null;
-        renderCanvas();
-        renderPropertiesPanel();
-    }
-
-    function deleteElement() {
-        if (selectedElementIndex !== null) {
-            projectData[currentPage].elements.splice(selectedElementIndex, 1);
-            selectedElementIndex = null;
-            updateAll();
-        }
-    }
-    
-    function updateElement(prop, value) {
-        if (selectedElementIndex !== null) {
-            projectData[currentPage].elements[selectedElementIndex][prop] = value;
-            renderCanvas();
-            renderPropertiesPanel();
-        }
-    }
-    
-    function updateStyle(prop, value) {
-        projectData[currentPage].styles[prop] = value;
-        renderCanvas();
-        renderPropertiesPanel();
-    }
-    
-    function moveElement(fromIndex, toIndex) {
-        const elements = projectData[currentPage].elements;
-        const [movedElement] = elements.splice(fromIndex, 1);
-        elements.splice(toIndex, 0, movedElement);
-        selectElement(toIndex);
-    }
-
-
-    // --- DRAG & DROP ---
-    let draggedItem = null;
-    function setupDragAndDrop() {
-        canvas.addEventListener('dragover', handleCanvasDragOver);
-        canvas.addEventListener('drop', handleDrop);
-
-        const elements = canvas.querySelectorAll('.element-frame');
-        elements.forEach(el => {
-            el.addEventListener('dragstart', handleDragStart);
-            el.addEventListener('dragend', handleDragEnd);
-        });
-    }
-
-    function handleDragStart(e) {
-        if (e.target.classList.contains('element-frame')) {
-            draggedItem = e.target;
-            e.dataTransfer.effectAllowed = 'move';
-            setTimeout(() => {
-                draggedItem.classList.add('dragging');
-            }, 0);
-        } else {
-            e.preventDefault();
-        }
-    }
-    
-    function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.element-frame:not(.dragging)')];
-
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-
-    function handleCanvasDragOver(e) {
-        e.preventDefault();
-        const afterElement = getDragAfterElement(canvas, e.clientY);
-        const placeholder = document.querySelector('.placeholder');
-        
-        if (!placeholder) {
-            const newPlaceholder = document.createElement('div');
-            newPlaceholder.className = 'placeholder';
-            if (afterElement == null) {
-                canvas.appendChild(newPlaceholder);
-            } else {
-                canvas.insertBefore(newPlaceholder, afterElement);
-            }
-        } else {
-            if (afterElement == null) {
-                canvas.appendChild(placeholder);
-            } else {
-                canvas.insertBefore(placeholder, afterElement);
-            }
-        }
-    }
-    
-    function handleDrop(e) {
-        e.preventDefault();
-        const placeholder = canvas.querySelector('.placeholder');
-        if (!placeholder || !draggedItem) return;
-
-        const fromIndex = parseInt(draggedItem.dataset.index, 10);
-        
-        const children = Array.from(canvas.children).filter(child => 
-            child.classList.contains('element-frame') || child.classList.contains('placeholder')
-        );
-        let toIndex = children.indexOf(placeholder);
-
-        const originalItemInFilteredArray = children.indexOf(draggedItem);
-        if (originalItemInFilteredArray !== -1 && originalItemInFilteredArray < toIndex) {
-            toIndex--;
-        }
-        
-        placeholder.remove();
-        if (fromIndex !== toIndex) {
-            moveElement(fromIndex, toIndex);
-        } else {
-            renderCanvas();
-        }
-    }
-
-    function handleDragEnd(e) {
-        document.querySelectorAll('.placeholder').forEach(p => p.remove());
-        if (draggedItem) {
-            draggedItem.classList.remove('dragging');
-        }
-        draggedItem = null;
-        renderCanvas();
-    }
-    
-    // --- FILE HANDLING ---
-    function saveProject() {
-        const dataStr = JSON.stringify({ projectData, images }, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'website-project.wsb';
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    function loadProject(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                projectData = data.projectData;
-                images = data.images || {};
                 currentPage = 'index.html';
                 selectedElementIndex = null;
-                projectNameEl.textContent = file.name.replace('.wsb', '');
+                projectNameEl.textContent = 'New Project';
                 updateAll();
-            } catch (err) {
-                alert('Error: Invalid project file.');
-                console.error(err);
+                geminiStatus.textContent = "How can I help you build?";
             }
-        };
-        reader.readAsText(file);
-        loadProjectInput.value = '';
-    }
-    
-    function generateWebsite() {
-        const zip = new JSZip();
-        const assets = zip.folder("assets");
-        const usedImages = new Set();
-        
-        Object.entries(projectData).forEach(([pageName, pageData]) => {
-            if (typeof pageData !== 'object' || !pageData.elements) return;
-             pageData.elements.forEach(el => {
-                if (el.type === 'image' && el.src && images[el.src]) {
-                    usedImages.add(el.src);
+
+            function getDefaultThemes() {
+                return {
+                    "Default": {
+                        primary: '#4f46e5',
+                        secondary: '#6b7280',
+                        background: '#ffffff',
+                        foreground: '#f3f4f6',
+                        'text-primary': '#111827',
+                        'text-secondary': '#6b7280',
+                        accent: '#ec4899'
+                    }
+                };
+            }
+            
+            function applyTheme() {
+                const theme = projectData.themes[projectData.currentTheme];
+                canvas.style.backgroundColor = theme.background;
+                canvas.style.color = theme['text-primary'];
+                canvasBg.style.backgroundColor = theme.foreground;
+            }
+
+            // --- CORE LOGIC ---
+            function updateAll() {
+                renderPageList();
+                renderCanvas();
+                renderPropertiesPanel();
+                applyTheme();
+            }
+            
+            function goToPage(pageName) {
+                let key = pageName.trim();
+                // If the name doesn't already end with .html, format it.
+                // This handles raw names from user input or the AI.
+                if (!key.endsWith('.html')) {
+                    key = key.toLowerCase().replace(/[^a-z0-9]/g, '-') + '.html';
                 }
-            });
-        });
 
-        usedImages.forEach(imgName => {
-            const base64Data = images[imgName].split(',')[1];
-            assets.file(imgName, base64Data, { base64: true });
-        });
-
-        Object.entries(projectData).forEach(([pageName, pageData]) => {
-            if (pageName.endsWith('.html')) {
-                zip.file(pageName, generatePageHTML(pageName, pageData));
+                if (projectData[key]) {
+                    currentPage = key;
+                    unselectElement(); // This will trigger updateAll()
+                } else {
+                    console.warn(`Attempted to go to non-existent page: ${pageName} (resolved to key: ${key})`);
+                }
             }
-        });
 
-        zip.generateAsync({ type: "blob" })
-            .then(function(content) {
-                const url = URL.createObjectURL(content);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = "website.zip";
-                a.click();
-                URL.revokeObjectURL(url);
-            });
-    }
+            function addPageAction(pageName) {
+                if (!pageName) {
+                    showConfirmModal("Page name cannot be empty. Please provide a valid name.", () => {});
+                    return;
+                }
+                let formattedName = pageName.trim();
+                if (!formattedName.endsWith('.html')) {
+                    formattedName = formattedName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '.html';
+                }
 
-    function generatePageHTML(pageName, pageData) {
-        const styles = pageData.styles;
-        const theme = projectData.themes[projectData.currentTheme];
-        const title = pageName.replace('.html', '').replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
-        
-        let bodyContent = "";
-        for (const el of pageData.elements) {
-            const alignStyle = `text-align: ${el.align || 'left'};`;
-            let elementHTML = '';
-
-            switch (el.type) {
-                case 'header': elementHTML = `<h1 style="font-size:${el.fontSize || styles.headerFontSize}px; font-weight: bold;">${el.content}</h1>`; break;
-                case 'subheader': elementHTML = `<h2 style="font-size:${el.fontSize || styles.subHeaderFontSize}px; font-weight: bold;">${el.content}</h2>`; break;
-                case 'paragraph': elementHTML = `<p style="font-size:${el.fontSize || styles.paragraphFontSize}px;">${el.content}</p>`; break;
-                case 'button':
-                    elementHTML = `<a href="${el.href}" style="background-color:${theme.primary}; color:white; padding: 10px 20px; text-decoration:none; border-radius: 5px; display:inline-block;">${el.text}</a>`;
-                    break;
-                case 'image':
-                    if (el.src) {
-                        elementHTML = `<img src="assets/${el.src}" alt="Image" style="width:${el.scale || 100}%; max-width:100%; display:inline-block;">`;
-                    }
-                    break;
-                case 'video':
-                    if (el.src) {
-                        if (el.src.includes('youtube.com/embed') || el.src.includes('player.vimeo.com/video')) {
-                            elementHTML = `<iframe width="560" height="315" src="${el.src}" frameborder="0" allowfullscreen style="max-width:100%; display:inline-block;"></iframe>`;
-                        } else {
-                             elementHTML = `<video controls style="max-width:100%; display:inline-block;"><source src="assets/${el.src}"></video>`;
-                        }
-                    }
-                    break;
-                case 'dropdown':
-                    let itemsHTML = el.items.map(item => `<a href="${item.href}" style="display:block; padding: 8px 16px; color: ${theme['text-primary']}; text-decoration: none;">${item.text}</a>`).join('');
-                    elementHTML = `
-                        <div class="dropdown" style="position:relative; display:inline-block;">
-                            <button class="dropbtn" style="background-color:${theme['text-primary']}; color:white; padding: 12px; font-size: 16px; border:none; cursor:pointer;">${el.name}</button>
-                            <div class="dropdown-content" style="display:none; position:absolute; background-color:${theme.foreground}; min-width:160px; box-shadow:0 8px 16px 0 rgba(0,0,0,0.2); z-index:1;">
-                                ${itemsHTML}
-                            </div>
-                        </div>`;
-                    break;
+                if (projectData[formattedName]) {
+                    goToPage(formattedName);
+                    return;
+                }
+                projectData[formattedName] = { elements: [] };
+                goToPage(formattedName);
             }
             
-            if (el.link && el.link.href) {
-                elementHTML = `<a href="${el.link.href}" ${el.link.newTab ? 'target="_blank"' : ''} style="text-decoration:none; color:inherit;">${elementHTML}</a>`;
+            function addElement(type, properties = {}) {
+                const newElement = {
+                    type,
+                    align: 'left',
+                    link: '',
+                    ...properties
+                };
+                // Set defaults if not provided in properties
+                switch (type) {
+                    case 'header': if (!newElement.content) newElement.content = "Main Header"; break;
+                    case 'subheader': if (!newElement.content) newElement.content = "Sub-Header"; break;
+                    case 'paragraph': if (!newElement.content) newElement.content = "This is a paragraph of text."; break;
+                    case 'button': if (!newElement.content) newElement.content = "Clickable Button"; if (!newElement.href) newElement.href = "#"; break;
+                    case 'image': 
+                        if (!newElement.src) newElement.src = 'https://placehold.co/600x400/EEE/31343C?text=Placeholder'; 
+                        if (!newElement.scale) newElement.scale = 100; 
+                        if (!newElement.alt) newElement.alt = 'Placeholder image';
+                        break;
+                    case 'video': if (!newElement.src) newElement.src = 'https://www.youtube.com/embed/dQw4w9WgXcQ'; break;
+                    case 'dropdown':
+                        if (!newElement.name) newElement.name = 'Dropdown';
+                        if (!newElement.items) newElement.items = [{ text: 'Item 1', href: '#' }, { text: 'Item 2', href: '#' }];
+                        break;
+                }
+                if(projectData[currentPage]) {
+                    projectData[currentPage].elements.push(newElement);
+                    selectElement(projectData[currentPage].elements.length - 1);
+                } else {
+                    console.error("Current page does not exist in project data.");
+                }
+            }
+            
+            function selectElement(index) {
+                selectedElementIndex = index;
+                updateAll();
+            }
+            
+            function unselectElement() {
+                selectedElementIndex = null;
+                updateAll();
             }
 
-            bodyContent += `<div style="${alignStyle}; margin: 16px 0;">${elementHTML}</div>\n`;
-        }
-
-        const dropdownCSS = `
-            .dropdown:hover .dropdown-content { display: block; }
-            .dropdown-content a:hover { background-color: ${theme.background}; }
-        `;
-
-        return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
-    <style>
-        body {
-            background-color: ${theme.background};
-            color: ${theme['text-primary']};
-            font-family: "${styles.fontFamily}", sans-serif;
-            margin: 2em;
-        }
-        ${dropdownCSS}
-    </style>
-</head>
-<body>
-    ${bodyContent}
-</body>
-</html>`;
-    }
-
-    // --- MODALS ---
-    function showModal(title, content, showButtons = true, onSubmit) {
-        const modalContainer = document.getElementById('modalContainer');
-        modalContainer.innerHTML = ''; // Clear previous modals
-        const backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop';
-        const modal = document.createElement('div');
-        modal.className = 'modal-content';
-        modal.innerHTML = `<h2 class="text-lg font-bold mb-4">${title}</h2>`;
-        
-        const form = document.createElement('form');
-        form.className = 'space-y-4';
-        
-        if (typeof content === 'function') {
-            content(form); // For complex content
-        } else {
-            // For simple fields array
-            content.forEach(field => {
-                const wrapper = createInputWrapper(field.label);
-                const input = document.createElement('input');
-                input.type = field.type;
-                input.name = field.name;
-                input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm';
-                input.required = true;
-                wrapper.appendChild(input);
-                form.appendChild(wrapper);
-            });
-        }
-        
-        if (showButtons) {
-            const btnContainer = document.createElement('div');
-            btnContainer.className = 'flex justify-end space-x-2 mt-6';
-            const cancelBtn = document.createElement('button');
-            cancelBtn.type = 'button';
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.className = 'btn-outline px-4 py-1.5 rounded-md text-sm';
-            cancelBtn.onclick = () => modalContainer.innerHTML = '';
-            const submitBtn = document.createElement('button');
-            submitBtn.type = 'submit';
-            submitBtn.textContent = 'OK';
-            submitBtn.className = 'btn-primary px-4 py-1.5 rounded-md text-sm';
-
-            btnContainer.appendChild(cancelBtn);
-            btnContainer.appendChild(submitBtn);
-            form.appendChild(btnContainer);
-        }
-        
-        form.onsubmit = (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            if (onSubmit) onSubmit(data);
-            modalContainer.innerHTML = '';
-        };
-
-        modal.appendChild(form);
-        backdrop.appendChild(modal);
-        modalContainer.appendChild(backdrop);
-    }
-    
-    function showThemeManagerModal() {
-        showModal('Theme Manager', (form) => {
-            const themes = projectData.themes;
-            const themeKeys = ['primary', 'secondary', 'background', 'foreground', 'text-primary', 'text-secondary', 'accent'];
-            let selectedTheme = projectData.currentTheme;
-
-            const selector = createSelectInput('Select Theme to Edit', selectedTheme, Object.keys(themes), (val) => {
-                selectedTheme = val;
-                updateEditor();
-            }).querySelector('select');
-
-            const editor = document.createElement('div');
-            editor.className = 'grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 mt-4';
+            function deleteElement() {
+                if (selectedElementIndex !== null) {
+                    projectData[currentPage].elements.splice(selectedElementIndex, 1);
+                    unselectElement();
+                }
+            }
             
-            function updateEditor() {
-                editor.innerHTML = '';
-                const theme = themes[selectedTheme];
-                const isDefault = selectedTheme === 'Default';
+            function updateElementProperty(prop, value) {
+                if (selectedElementIndex !== null) {
+                    projectData[currentPage].elements[selectedElementIndex][prop] = value;
+                    updateAll();
+                }
+            }
 
-                themeKeys.forEach(key => {
-                    const colorInput = createColorInput(key, theme[key], (val) => {
-                        if (isDefault) return;
-                        themes[selectedTheme][key] = val;
-                        applyTheme();
-                        renderCanvas(); // Force canvas re-render
+            function updateDropdownItem(itemIndex, prop, value) {
+                if (selectedElementIndex !== null) {
+                    const element = projectData[currentPage].elements[selectedElementIndex];
+                    if (element?.type === 'dropdown' && element.items?.[itemIndex]) {
+                        element.items[itemIndex][prop] = value;
+                        // Only re-render canvas to prevent properties panel from losing focus on text input.
+                        renderCanvas();
+                    }
+                }
+            }
+
+            function addDropdownItem() {
+                if (selectedElementIndex !== null) {
+                    const element = projectData[currentPage].elements[selectedElementIndex];
+                    if (element && element.type === 'dropdown') {
+                        element.items.push({ text: 'New Item', href: '#' });
+                        updateAll();
+                    }
+                }
+            }
+
+            function removeDropdownItem(itemIndex) {
+                 if (selectedElementIndex !== null) {
+                    const element = projectData[currentPage].elements[selectedElementIndex];
+                    if (element && element.type === 'dropdown' && element.items[itemIndex]) {
+                        element.items.splice(itemIndex, 1);
+                        updateAll();
+                    }
+                }
+            }
+
+            // --- RENDERING ---
+            function renderPageList() {
+                pageList.innerHTML = '';
+                Object.keys(projectData).forEach(key => {
+                    if (key === 'themes' || key === 'currentTheme') return;
+                    const pageItem = document.createElement('div');
+                    pageItem.className = `p-2 rounded-md cursor-pointer text-sm ${key === currentPage ? 'bg-indigo-100 text-indigo-700 font-semibold' : 'hover:bg-gray-100'}`;
+                    pageItem.textContent = key;
+                    pageItem.onclick = () => {
+                        goToPage(key);
+                    };
+                    pageList.appendChild(pageItem);
+                });
+            }
+
+            function renderCanvas() {
+                canvas.innerHTML = '';
+                const elements = projectData[currentPage]?.elements || [];
+                elements.forEach((element, index) => {
+                    const elWrapper = document.createElement('div');
+                    elWrapper.className = `element-frame p-2 relative ${index === selectedElementIndex ? 'selected' : ''}`;
+                    elWrapper.dataset.index = index;
+                    elWrapper.draggable = true;
+
+                    const content = renderElement(element);
+                    elWrapper.appendChild(content);
+
+                    elWrapper.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        selectElement(index);
+                    });
+                    
+                    elWrapper.addEventListener('dragstart', (e) => {
+                        dragData.element = elWrapper;
+                        dragData.index = index;
+                        e.dataTransfer.effectAllowed = 'move';
+                        setTimeout(() => elWrapper.classList.add('opacity-50'), 0);
                     });
 
-                    if (isDefault) {
-                        colorInput.querySelectorAll('input').forEach(i => i.disabled = true);
+                    elWrapper.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        const target = e.target.closest('.element-frame');
+                        if (target && target !== dragData.element) {
+                            const rect = target.getBoundingClientRect();
+                            const isAfter = (e.clientY - rect.top) > rect.height / 2;
+                            if (isAfter) {
+                                target.parentNode.insertBefore(dragData.element, target.nextSibling);
+                            } else {
+                                target.parentNode.insertBefore(dragData.element, target);
+                            }
+                        }
+                    });
+
+                    elWrapper.addEventListener('dragend', () => {
+                        elWrapper.classList.remove('opacity-50');
+                        
+                        const originalElements = projectData[currentPage].elements;
+                        
+                        const reorderedElements = Array.from(canvas.querySelectorAll('.element-frame')).map(frame => {
+                            const originalIndex = parseInt(frame.dataset.index, 10);
+                            return originalElements[originalIndex];
+                        });
+
+                        const draggedElement = originalElements[dragData.index];
+                        const newIndex = reorderedElements.indexOf(draggedElement);
+
+                        projectData[currentPage].elements = reorderedElements;
+                        
+                        dragData = { element: null, index: -1 };
+                        
+                        selectElement(newIndex);
+                    });
+
+
+                    canvas.appendChild(elWrapper);
+                });
+            }
+            
+            function renderElement(element) {
+                const theme = projectData.themes[projectData.currentTheme];
+                const container = document.createElement('div');
+                container.style.textAlign = element.align;
+
+                let el;
+                switch(element.type) {
+                    case 'header':
+                        el = document.createElement('h1');
+                        el.textContent = element.content;
+                        el.style.fontSize = '2em';
+                        el.style.fontWeight = 'bold';
+                        break;
+                    case 'subheader':
+                        el = document.createElement('h2');
+                        el.textContent = element.content;
+                        el.style.fontSize = '1.5em';
+                        el.style.fontWeight = 'bold';
+                        break;
+                    case 'paragraph':
+                        el = document.createElement('p');
+                        el.textContent = element.content;
+                        break;
+                    case 'button':
+                        el = document.createElement('a');
+                        el.textContent = element.content;
+                        el.href = element.href || '#';
+                        el.onclick = (e) => e.preventDefault(); // Prevent navigation inside editor
+                        el.style.display = 'inline-block';
+                        el.style.padding = '10px 20px';
+                        el.style.borderRadius = '5px';
+                        el.style.textDecoration = 'none';
+                        el.style.backgroundColor = theme.primary;
+                        el.style.color = 'white';
+                        break;
+                    case 'image':
+                        el = document.createElement('img');
+                        el.src = element.src;
+                        el.alt = element.alt || ''; // Add alt attribute for accessibility
+                        el.style.maxWidth = '100%';
+                        el.style.width = `${element.scale}%`;
+                        el.onerror = function() { // Fallback for broken image links
+                            this.onerror=null;
+                            this.src='https://placehold.co/600x400/EEE/31343C?text=Image+Not+Found';
+                        };
+                        break;
+                    case 'video':
+                        el = document.createElement('iframe');
+                        el.src = element.src;
+                        el.width = "560";
+                        el.height = "315";
+                        el.frameBorder = "0";
+                        el.allow = "autoplay; fullscreen; picture-in-picture";
+                        el.style.maxWidth = '100%';
+                        el.style.display = 'inline-block';
+                        break;
+                    case 'dropdown':
+                        el = document.createElement('div');
+                        el.className = 'relative inline-block';
+                        const btn = document.createElement('button');
+                        btn.textContent = element.name;
+                        btn.style.backgroundColor = theme['text-primary'];
+                        btn.style.color = theme.background;
+                        btn.style.padding = '12px';
+                        const content = document.createElement('div');
+                        content.className = 'hidden absolute bg-white shadow-lg p-2 rounded';
+                        element.items.forEach(item => {
+                            const a = document.createElement('a');
+                            a.textContent = item.text;
+                            a.href = item.href || '#';
+                            a.onclick = (e) => e.preventDefault();
+                            a.className = 'block p-2 hover:bg-gray-100';
+                            content.appendChild(a);
+                        });
+                        el.appendChild(btn);
+                        el.appendChild(content);
+                        el.onmouseenter = () => content.classList.remove('hidden');
+                        el.onmouseleave = () => content.classList.add('hidden');
+                        break;
+                }
+
+                if (element.link) {
+                    const linkWrapper = document.createElement('a');
+                    linkWrapper.href = '#'; // In-editor link is disabled
+                    linkWrapper.onclick = (e) => e.preventDefault();
+                    linkWrapper.style.cursor = 'pointer';
+                    linkWrapper.style.position = 'relative';
+                    linkWrapper.style.display = 'inline-block';
+                    linkWrapper.title = `Links to: ${element.link}`;
+                    const linkIcon = document.createElement('span');
+                    linkIcon.textContent = '🔗';
+                    linkIcon.style.position = 'absolute';
+                    linkIcon.style.top = '0';
+                    linkIcon.style.right = '0';
+                    linkIcon.style.fontSize = '0.75em';
+                    linkIcon.style.background = 'rgba(255,255,255,0.8)';
+                    linkIcon.style.borderRadius = '50%';
+                    linkIcon.style.padding = '2px';
+                    linkWrapper.appendChild(el);
+                    linkWrapper.appendChild(linkIcon);
+                    container.appendChild(linkWrapper);
+                } else {
+                    container.appendChild(el);
+                }
+                return container;
+            }
+
+            function renderPropertiesPanel() {
+                propertiesContent.innerHTML = '';
+                if (selectedElementIndex === null || !projectData[currentPage] || !projectData[currentPage].elements[selectedElementIndex]) {
+                     // Global Styles
+                    propertiesContent.innerHTML = `
+                        <h3 class="font-semibold text-sm mb-2">Global Page Styles</h3>
+                        <div class="space-y-2">
+                            <label class="block text-xs text-gray-600">Website Theme</label>
+                            <div class="flex items-center">
+                                <select id="themeSelector" class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"></select>
+                                <button id="themeManagerBtn" class="p-1.5 ml-2 border rounded-md hover:bg-gray-100">⚙️</button>
+                            </div>
+                        </div>`;
+                    const themeSelector = document.getElementById('themeSelector');
+                    Object.keys(projectData.themes).forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        if (name === projectData.currentTheme) option.selected = true;
+                        themeSelector.appendChild(option);
+                    });
+                    themeSelector.onchange = (e) => {
+                        projectData.currentTheme = e.target.value;
+                        updateAll();
+                    };
+                    document.getElementById('themeManagerBtn').onclick = showThemeManagerModal;
+                    return;
+                }
+
+                const element = projectData[currentPage].elements[selectedElementIndex];
+                
+                // Alignment
+                const alignContainer = document.createElement('div');
+                const alignLabel = document.createElement('label');
+                alignLabel.textContent = 'Alignment';
+                alignLabel.className = 'block text-xs font-medium text-gray-700 mb-1';
+                alignContainer.appendChild(alignLabel);
+                const alignBtns = document.createElement('div');
+                alignBtns.className = 'grid grid-cols-3 gap-1 rounded-md bg-gray-200 p-1';
+                ['left', 'center', 'right'].forEach(align => {
+                    const btn = document.createElement('button');
+                    btn.textContent = align.charAt(0).toUpperCase();
+                    btn.className = `px-2 py-1 text-xs rounded ${element.align === align ? 'bg-white font-semibold shadow' : ''}`;
+                    btn.onclick = () => updateElementProperty('align', align);
+                    alignBtns.appendChild(btn);
+                });
+                alignContainer.appendChild(alignBtns);
+                propertiesContent.appendChild(alignContainer);
+
+                // Element-specific props
+                if (['header', 'subheader', 'paragraph'].includes(element.type)) {
+                    propertiesContent.appendChild(createTextInput('Content', element.content, (val) => updateElementProperty('content', val), true));
+                }
+                if (element.type === 'button') {
+                    propertiesContent.appendChild(createTextInput('Content', element.content, (val) => updateElementProperty('content', val)));
+                    propertiesContent.appendChild(createUrlInput('URL', element.href, (val) => updateElementProperty('href', val)));
+                }
+                if (element.type === 'image') {
+                    propertiesContent.appendChild(createTextInput('Source URL', element.src, (val) => updateElementProperty('src', val)));
+                    propertiesContent.appendChild(createTextInput('Alt Text', element.alt, (val) => updateElementProperty('alt', val)));
+                    propertiesContent.appendChild(createRangeInput('Scale', element.scale, (val) => updateElementProperty('scale', val), 10, 200));
+                }
+                if (element.type === 'video') {
+                    propertiesContent.appendChild(createTextInput('Source URL', element.src, (val) => updateElementProperty('src', val)));
+                }
+                if (element.type === 'dropdown') {
+                    propertiesContent.appendChild(createTextInput('Button Text', element.name, (val) => updateElementProperty('name', val)));
+                    
+                    const itemsLabel = document.createElement('label');
+                    itemsLabel.className = 'block text-xs font-medium text-gray-700 mb-1 mt-4';
+                    itemsLabel.textContent = 'Dropdown Items';
+                    propertiesContent.appendChild(itemsLabel);
+
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = 'space-y-2 border p-2 rounded-md bg-gray-50';
+                    
+                    element.items.forEach((item, index) => {
+                        const itemWrapper = document.createElement('div');
+                        itemWrapper.className = 'flex items-center space-x-2';
+                        
+                        const textInput = document.createElement('input');
+                        textInput.type = 'text';
+                        textInput.value = item.text;
+                        textInput.placeholder = 'Item Text';
+                        textInput.className = 'w-full px-2 py-1 border border-gray-300 rounded-md text-sm';
+                        textInput.oninput = (e) => updateDropdownItem(index, 'text', e.target.value);
+
+                        const hrefInput = document.createElement('input');
+                        hrefInput.type = 'text';
+                        hrefInput.value = item.href;
+                        hrefInput.placeholder = 'Link URL';
+                        hrefInput.className = 'w-full px-2 py-1 border border-gray-300 rounded-md text-sm';
+                        hrefInput.oninput = (e) => updateDropdownItem(index, 'href', e.target.value);
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.textContent = '-';
+                        removeBtn.className = 'flex-shrink-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600';
+                        removeBtn.onclick = () => removeDropdownItem(index);
+
+                        const inputsWrapper = document.createElement('div');
+                        inputsWrapper.className = 'flex-grow space-y-1';
+                        inputsWrapper.appendChild(textInput);
+                        inputsWrapper.appendChild(hrefInput);
+
+                        itemWrapper.appendChild(inputsWrapper);
+                        itemWrapper.appendChild(removeBtn);
+                        itemsContainer.appendChild(itemWrapper);
+                    });
+                    propertiesContent.appendChild(itemsContainer);
+
+                    const addItemBtn = document.createElement('button');
+                    addItemBtn.textContent = '+ Add Item';
+                    addItemBtn.className = 'w-full mt-2 btn-outline text-sm py-1.5 rounded-md';
+                    addItemBtn.onclick = addDropdownItem;
+                    propertiesContent.appendChild(addItemBtn);
+                }
+
+                // Universal Link Property (excluding buttons which have their own href)
+                if (element.type !== 'button') {
+                    propertiesContent.appendChild(createUrlInput('Element Link', element.link, (val) => updateElementProperty('link', val)));
+                }
+
+                // Delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete Element';
+                deleteBtn.className = 'w-full mt-4 btn-outline border-red-500 text-red-500 hover:bg-red-50 text-sm py-2 rounded-md';
+                deleteBtn.onclick = () => showConfirmModal('Are you sure you want to delete this element?', deleteElement);
+                propertiesContent.appendChild(deleteBtn);
+            }
+            
+            // --- PROPERTY INPUT CREATORS ---
+            function createInputWrapper(label) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'mb-2';
+                const labelEl = document.createElement('label');
+                labelEl.className = 'block text-xs font-medium text-gray-700 mb-1';
+                labelEl.textContent = label;
+                wrapper.appendChild(labelEl);
+                return wrapper;
+            }
+            
+            function createTextInput(label, value, onChange, hasGemini = false) {
+                const wrapper = createInputWrapper(label);
+                const container = document.createElement('div');
+                container.className = 'relative';
+
+                const input = document.createElement('textarea');
+                input.value = value;
+                input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary resize-y';
+                input.rows = 3;
+                input.oninput = (e) => onChange(e.target.value);
+                container.appendChild(input);
+
+                if (hasGemini) {
+                    const geminiBtn = document.createElement('button');
+                    geminiBtn.className = 'gemini-btn absolute bottom-2 right-2 p-1 rounded-md text-xs flex items-center space-x-1';
+                    geminiBtn.innerHTML = `✨<span>Omni Assist</span>`;
+                    geminiBtn.onclick = () => showAIGenerateModal(value, onChange);
+                    container.appendChild(geminiBtn);
+                }
+                
+                wrapper.appendChild(container);
+                return wrapper;
+            }
+
+            function createUrlInput(label, value, onChange) {
+                const wrapper = createInputWrapper(label);
+                const datalistId = `pages-list-${Math.random().toString(36).substr(2, 9)}`;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = value || '';
+                input.setAttribute('list', datalistId);
+                input.placeholder = 'https://... or select a page';
+                input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm';
+                input.onchange = (e) => onChange(e.target.value);
+
+                const datalist = document.createElement('datalist');
+                datalist.id = datalistId;
+                Object.keys(projectData).forEach(key => {
+                    if (key !== 'themes' && key !== 'currentTheme' && key !== currentPage) {
+                        const option = document.createElement('option');
+                        option.value = key;
+                        datalist.appendChild(option);
                     }
-                    editor.appendChild(colorInput);
                 });
                 
-                if (isDefault) {
-                    const notice = document.createElement('p');
-                    notice.className = 'text-xs text-gray-500 col-span-2 text-center mt-2';
-                    notice.textContent = 'Default theme is read-only. Create a new theme to customize colors.';
-                    editor.appendChild(notice);
+                wrapper.appendChild(input);
+                wrapper.appendChild(datalist);
+                return wrapper;
+            }
+
+            function createRangeInput(label, value, onChange, min = 0, max = 100) {
+                const wrapper = createInputWrapper(label);
+                const container = document.createElement('div');
+                container.className = 'flex items-center space-x-2';
+                const input = document.createElement('input');
+                input.type = 'range';
+                input.min = min;
+                input.max = max;
+                input.value = value;
+                input.className = 'w-full';
+                const labelValue = document.createElement('span');
+                labelValue.className = 'text-sm w-12 text-right';
+                labelValue.textContent = `${value}%`;
+
+                input.oninput = (e) => {
+                    onChange(e.target.value);
+                    labelValue.textContent = `${e.target.value}%`;
+                };
+                container.appendChild(input);
+                container.appendChild(labelValue);
+                wrapper.appendChild(container);
+                return wrapper;
+            }
+            
+            function createColorInput(label, value, onChange) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex items-center justify-between';
+                const labelEl = document.createElement('label');
+                labelEl.textContent = label;
+                labelEl.className = 'text-sm';
+                const input = document.createElement('input');
+                input.type = 'color';
+                input.value = value;
+                input.className = 'w-8 h-8 p-0 border-none rounded';
+                input.oninput = (e) => onChange(e.target.value);
+                wrapper.appendChild(labelEl);
+                wrapper.appendChild(input);
+                return wrapper;
+            }
+            
+            function createSelectInput(label, value, options, onChange) {
+                const wrapper = createInputWrapper(label);
+                const select = document.createElement('select');
+                select.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm';
+                options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt;
+                    option.textContent = opt;
+                    if(opt === value) option.selected = true;
+                    select.appendChild(option);
+                });
+                select.onchange = (e) => onChange(e.target.value);
+                wrapper.appendChild(select);
+                return wrapper;
+            }
+
+            // --- PROJECT MGMT ---
+            function saveProject() {
+                try {
+                    const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+                    saveAs(blob, 'my-omni-website.wsb');
+                } catch (error) {
+                    console.error("Failed to save project:", error);
+                    showConfirmModal("Error saving project.", () => {});
                 }
             }
             
-            const newThemeContainer = document.createElement('div');
-            newThemeContainer.className = 'flex items-center space-x-2 mt-4';
-            const newThemeName = document.createElement('input');
-            newThemeName.type = 'text';
-            newThemeName.placeholder = 'New Theme Name';
-            newThemeName.className = 'flex-grow px-2 py-1.5 border border-gray-300 rounded-md text-sm';
-            const addThemeBtn = document.createElement('button');
-            addThemeBtn.type = 'button';
-            addThemeBtn.textContent = 'Add Theme';
-            addThemeBtn.className = 'btn-secondary px-3 py-1.5 rounded-md text-sm';
-            addThemeBtn.onclick = () => {
-                const name = newThemeName.value.trim();
-                if (name && !themes[name]) {
-                    themes[name] = { ...themes[selectedTheme] }; // clone current
-                    projectData.currentTheme = name;
-                    form.parentElement.parentElement.remove(); // close and reopen
-                    showThemeManagerModal();
-                    updateAll();
-                } else {
-                    alert('Invalid or duplicate theme name.');
+            function loadProject(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            projectData = JSON.parse(e.target.result);
+                            currentPage = 'index.html';
+                            unselectElement();
+                        } catch (error) {
+                            console.error("Failed to load project:", error);
+                            showConfirmModal("Invalid project file.", () => {});
+                        }
+                    };
+                    reader.readAsText(file);
                 }
-            };
+            }
             
-            newThemeContainer.appendChild(newThemeName);
-            newThemeContainer.appendChild(addThemeBtn);
+            async function generateWebsite() {
+                const zip = new JSZip();
+                Object.keys(projectData).forEach(key => {
+                    if (key !== 'themes' && key !== 'currentTheme') {
+                        const pageHtml = generatePageHTML(key, projectData[key]);
+                        zip.file(key, pageHtml);
+                    }
+                });
+                const content = await zip.generateAsync({ type: 'blob' });
+                saveAs(content, 'website.zip');
+            }
 
-            form.appendChild(selector.parentElement);
-            form.appendChild(editor);
-            form.appendChild(newThemeContainer);
-            updateEditor();
+            function generatePageHTML(pageName, pageData) {
+                const theme = projectData.themes[projectData.currentTheme];
+                const title = pageName.replace('.html', '').replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-            const closeBtn = document.createElement('button');
-            closeBtn.type = 'button';
-            closeBtn.textContent = 'Done';
-            closeBtn.className = 'btn-primary px-4 py-1.5 rounded-md text-sm float-right mt-4';
-            closeBtn.onclick = () => form.parentElement.parentElement.remove();
-            form.appendChild(closeBtn);
+                const bodyContent = pageData.elements.map(element => {
+                    let style = `text-align: ${element.align};; margin: 16px 0;`;
+                    let content = '';
 
-        }, false);
-    }
+                    switch(element.type) {
+                        case 'header': content = `<h1 style="font-size:32px; font-weight: bold;">${element.content}</h1>`; break;
+                        case 'subheader': content = `<h2 style="font-size:24px; font-weight: bold;">${element.content}</h2>`; break;
+                        case 'paragraph': content = `<p>${element.content}</p>`; break;
+                        case 'button': content = `<a href="${element.href}" class="btn-primary">${element.content}</a>`; break;
+                        case 'image': content = `<img src="${element.src}" alt="${element.alt || ''}" style="max-width:100%; width:${element.scale}%; display:inline-block;">`; break;
+                        case 'video': content = `<iframe src="${element.src}" width="560" height="315" style="max-width:100%; display:inline-block;" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`; break;
+                        case 'dropdown':
+                            const items = element.items.map(i => `<a href="${i.href}">${i.text}</a>`).join('');
+                            content = `
+                                <div class="dropdown" style="position:relative; display:inline-block;">
+                                    <button class="dropdown-btn">${element.name}</button>
+                                    <div class="dropdown-content">${items}</div>
+                                </div>`;
+                            break;
+                    }
+                    
+                    if (element.link) {
+                        return `<a href="${element.link}" style="text-decoration:none; color:inherit; display:block; ${style}">${content}</a>`;
+                    }
+                    return `<div style="${style}">${content}</div>`;
+                }).join('\n');
 
-    // --- EVENT LISTENERS ---
-    addPageBtn.addEventListener('click', () => {
-        showModal('Add New Page', [{ type: 'text', name: 'pageName', label: 'Page Name (e.g., about)' }], true, addPage);
-    });
-    addElementBtns.forEach(btn => {
-        btn.addEventListener('click', () => addElement(btn.dataset.type));
-    });
-    canvas.addEventListener('click', (e) => {
-        if (e.target.id === 'canvas' || e.target.id === 'canvas-wrapper') {
-            unselectElement();
-        }
-    });
+                return `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${title}</title>
+            <style>
+                body {
+                    background-color: ${theme.background};
+                    color: ${theme['text-secondary']};
+                    font-family: "Inter", sans-serif;
+                    margin: 2em;
+                }
+                h1, h2, h3, h4, h5, h6, p { color: ${theme['text-primary']}; }
+                a { color: ${theme.primary}; }
+                .btn-primary { background-color: ${theme.primary}; color: white; padding: 10px 20px; text-decoration:none; border-radius: 5px; display:inline-block; }
+                .dropdown-btn { background-color:${theme['text-primary']}; color:${theme.background}; padding: 12px; font-size: 16px; border:none; cursor:pointer; }
+                .dropdown-content { display:none; position:absolute; background-color:${theme.foreground}; min-width:160px; box-shadow:0 8px 16px 0 rgba(0,0,0,0.2); z-index:1; }
+                .dropdown-content a { display:block; padding: 8px 16px; color: ${theme['text-primary']}; text-decoration: none; }
+                .dropdown:hover .dropdown-content { display: block; }
+                .dropdown-content a:hover { background-color: ${theme.accent}; }
+            </style>
+        </head>
+        <body>
+            ${bodyContent}
+        </body>
+        </html>`;
+            }
 
-    newProjectBtn.addEventListener('click', () => {
-        if(confirm('Are you sure you want to start a new project? Unsaved changes will be lost.')) {
-            newProject();
-        }
-    });
-    saveProjectBtn.addEventListener('click', saveProject);
-    loadProjectBtn.addEventListener('click', () => loadProjectInput.click());
-    loadProjectInput.addEventListener('change', loadProject);
-    generateWebsiteBtn.addEventListener('click', generateWebsite);
+            // --- GEMINI API ---
+            function getSystemPrompt() {
+                return `You are Omni-Bot, an expert AI assistant integrated into the Omni-Web Creator application. Your primary goal is to help users build websites by using the tools available to you.
 
-    // --- KICK IT OFF ---
-    init();
-});
+**CRITICAL RULES:**
+1.  **NEVER WRITE CODE.** Your only output is a single, valid, complete JSON array of action objects. Do not write any text, explanation, or markdown outside of this JSON array.
+2.  **THINK STEP-BY-STEP.** For complex requests, break the task down into a logical sequence of actions. For example, to add content to a different page, you MUST use the "goToPage" action first, then use "addElement". To modify an element, you must use "selectElement" first.
+3.  **ALWAYS BE CONVERSATIONAL.** Use the "speak" action to confirm what you have done and to guide the user.
+4.  **IMAGE SOURCING:** For image elements, you MUST use URLs from \`picsum.photos\` to ensure they are displayed correctly. For example, for a random 600x400 image, use \`https://picsum.photos/600/400\`. Do NOT use URLs from sites like Unsplash as they will be blocked.
+
+**Available Actions:**
+1.  **speak**: Provide a conversational response to the user.
+    - params: { "text": "The message to display to the user." }
+2.  **addElement**: Adds a new element to the *current* page.
+    - params for text/button: { "type": "header" | "subheader" | "paragraph" | "button", "content": "The initial text content." }
+    - params for media: { "type": "image" | "video", "src": "The URL of the image or video embed.", "alt": "A description of the image for accessibility." }
+    - params for dropdown: { "type": "dropdown", "name": "The button text", "items": [{"text": "Item 1", "href": "#"}, {"text": "Item 2", "href": "#"}] }
+3.  **addPage**: Creates a new page. The user will be switched to this new page.
+    - params: { "name": "The name of the new page, e.g., 'about'" }
+4.  **goToPage**: Switches the editor to a different page.
+    - params: { "name": "The name of the page to switch to, e.g., 'about'" }
+5.  **selectElement**: Selects an element on the canvas by its index (0-based).
+    - params: { "index": 0 }
+6.  **updateSelectedElement**: Modifies a property of the *currently selected* element. You MUST select an element first.
+    - params: { "property": "content" | "align" | "href" | "src" | "name" | "items" | "alt", "value": "The new value." }
+    - \`href\` is used for button links.
+    - \`src\` is used for image/video URLs.
+    - \`items\` is used for dropdowns and the value must be an array like: [{"text": "New Item", "href": "/page.html"}].
+
+**Current Project State:**
+- Existing Pages: [${Object.keys(projectData).filter(k => k !== 'themes' && k !== 'currentTheme').map(p => `'${p}'`).join(', ')}]
+- Current Page: '${currentPage}'
+- Number of Elements on this Page: ${projectData[currentPage] ? projectData[currentPage].elements.length : 0}
+- Selected Element Index: ${selectedElementIndex === null ? 'None' : selectedElementIndex}
+
+User's request will be provided next. Remember the critical rules. Respond ONLY with a single, complete JSON array.`;
+            }
+
+            async function callBuilderAssistantAPI(userPrompt) {
+                geminiStatus.textContent = "Thinking...";
+                builderChatHistory.push({ role: "user", parts: [{ text: userPrompt }] });
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: builderChatHistory,
+                    systemInstruction: { parts: [{ text: getSystemPrompt() }] },
+                    generationConfig: { responseMimeType: "application/json" }
+                };
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                    const result = await response.json();
+                    const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (rawText) {
+                        try {
+                            const jsonMatch = rawText.match(/(\[[\s\S]*\])/);
+                            if (!jsonMatch) throw new Error("No valid JSON array found in the response.");
+                            const cleanedText = jsonMatch[0];
+                            const actions = JSON.parse(cleanedText);
+                            await executeBuilderActions(actions);
+                            builderChatHistory.push({ role: "model", parts: [{ text: rawText }] });
+                        } catch (e) {
+                            geminiStatus.textContent = "Couldn't understand that response. Try again?";
+                            console.error("Failed to parse AI response:", rawText);
+                            console.error("Parsing Error:", e);
+                        }
+                    } else {
+                        geminiStatus.textContent = "Couldn't process that request.";
+                    }
+                } catch (error) {
+                    console.error("Builder Assistant API call failed:", error);
+                    geminiStatus.textContent = `Error: ${error.message}`;
+                }
+            }
+            
+            async function executeBuilderActions(actions) {
+                if (!Array.isArray(actions)) {
+                    console.error("Expected an array of actions, but got:", actions);
+                    geminiStatus.textContent = "Sorry, I received an invalid response format.";
+                    return;
+                }
+
+                for (const action of actions) {
+                    switch (action.action) {
+                        case 'speak':
+                            geminiStatus.textContent = action.params.text;
+                            break;
+                        case 'addElement':
+                            // Destructure type from params, pass the rest as properties object
+                            const { type, ...properties } = action.params;
+                            addElement(type, properties);
+                            break;
+                        case 'addPage':
+                            addPageAction(action.params.name);
+                            break;
+                        case 'goToPage':
+                            goToPage(action.params.name);
+                            break;
+                        case 'selectElement':
+                            selectElement(action.params.index);
+                            break;
+                        case 'updateSelectedElement':
+                            updateElementProperty(action.params.property, action.params.value);
+                            break;
+                        default:
+                            console.warn(`Unknown action: ${action.action}`);
+                    }
+                    // Wait for the UI to update
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+
+            async function callTextGeneratorAPI(prompt, retries = 3, delay = 1000) {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const payload = { contents: [{ parts: [{ text: prompt }] }], };
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        if (response.status === 429 && retries > 0) {
+                            await new Promise(res => setTimeout(res, delay));
+                            return callTextGeneratorAPI(prompt, retries - 1, delay * 2);
+                        }
+                        throw new Error(`API request failed with status ${response.status}`);
+                    }
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+                    return candidate?.content?.parts?.[0]?.text || "Failed to generate content. Please try again.";
+                } catch (error) {
+                    console.error("Gemini API call failed:", error);
+                    return `Error: ${error.message}`;
+                }
+            }
+
+            // --- MODALS ---
+            function showModal(title, content, showButtons = true, onSubmit) {
+                const modalContainer = document.getElementById('modalContainer');
+                modalContainer.innerHTML = '';
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop';
+                const modal = document.createElement('div');
+                modal.className = 'modal-content';
+                modal.innerHTML = `<h2 class="text-lg font-bold mb-4">${title}</h2>`;
+                const form = document.createElement('form');
+                form.className = 'space-y-4';
+                if (typeof content === 'function') content(form);
+                else {
+                    content.forEach(field => {
+                        const wrapper = createInputWrapper(field.label);
+                        const input = document.createElement('input');
+                        input.type = field.type;
+                        input.name = field.name;
+                        input.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm';
+                        input.required = true;
+                        wrapper.appendChild(input);
+                        form.appendChild(wrapper);
+                    });
+                }
+                if (showButtons) {
+                    const btnContainer = document.createElement('div');
+                    btnContainer.className = 'flex justify-end space-x-2 mt-6';
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.type = 'button';
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.className = 'btn-outline px-4 py-1.5 rounded-md text-sm';
+                    cancelBtn.onclick = () => modalContainer.innerHTML = '';
+                    const submitBtn = document.createElement('button');
+                    submitBtn.type = 'submit';
+                    submitBtn.textContent = 'OK';
+                    submitBtn.className = 'btn-primary px-4 py-1.5 rounded-md text-sm';
+                    btnContainer.appendChild(cancelBtn);
+                    btnContainer.appendChild(submitBtn);
+                    form.appendChild(btnContainer);
+                }
+                form.onsubmit = (e) => {
+                    e.preventDefault();
+                    if (onSubmit) onSubmit(Object.fromEntries(new FormData(form).entries()));
+                    modalContainer.innerHTML = '';
+                };
+                modal.appendChild(form);
+                backdrop.appendChild(modal);
+                modalContainer.appendChild(backdrop);
+            }
+            
+            function showConfirmModal(message, onConfirm) {
+                showModal('Are you sure?', (form) => {
+                    const p = document.createElement('p');
+                    p.textContent = message;
+                    form.appendChild(p);
+                }, true, onConfirm);
+            }
+
+            function showThemeManagerModal() {
+                showModal('Theme Manager', (form) => {
+                    const themes = projectData.themes;
+                    const themeKeys = ['primary', 'secondary', 'background', 'foreground', 'text-primary', 'text-secondary', 'accent'];
+                    let selectedTheme = projectData.currentTheme;
+                    const selector = createSelectInput('Select Theme to Edit', selectedTheme, Object.keys(themes), (val) => {
+                        selectedTheme = val;
+                        updateEditor();
+                    }).querySelector('select');
+                    const editor = document.createElement('div');
+                    editor.className = 'grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 mt-4';
+                    function updateEditor() {
+                        editor.innerHTML = '';
+                        const theme = themes[selectedTheme];
+                        const isDefault = selectedTheme === 'Default';
+                        themeKeys.forEach(key => {
+                            const colorInput = createColorInput(key, theme[key], (val) => {
+                                if (!isDefault) {
+                                    themes[selectedTheme][key] = val;
+                                    applyTheme();
+                                    renderCanvas();
+                                }
+                            });
+                            if (isDefault) colorInput.querySelectorAll('input').forEach(i => i.disabled = true);
+                            editor.appendChild(colorInput);
+                        });
+                        if (isDefault) {
+                            const notice = document.createElement('p');
+                            notice.className = 'text-xs text-gray-500 col-span-2 text-center mt-2';
+                            notice.textContent = 'Default theme is read-only. Create a new theme to customize colors.';
+                            editor.appendChild(notice);
+                        }
+                    }
+                    const newThemeContainer = document.createElement('div');
+                    newThemeContainer.className = 'flex items-center space-x-2 mt-4';
+                    const newThemeName = document.createElement('input');
+                    newThemeName.type = 'text';
+                    newThemeName.placeholder = 'New Theme Name';
+                    newThemeName.className = 'flex-grow px-2 py-1.5 border border-gray-300 rounded-md text-sm';
+                    const addThemeBtn = document.createElement('button');
+                    addThemeBtn.type = 'button';
+                    addThemeBtn.textContent = 'Add Theme';
+                    addThemeBtn.className = 'btn-secondary px-3 py-1.5 rounded-md text-sm';
+                    addThemeBtn.onclick = () => {
+                        const name = newThemeName.value.trim();
+                        if (name && !themes[name]) {
+                            themes[name] = { ...themes[selectedTheme] };
+                            projectData.currentTheme = name;
+                            form.parentElement.parentElement.remove();
+                            showThemeManagerModal();
+                            updateAll();
+                        } else showConfirmModal('Invalid or duplicate theme name.', () => {});
+                    };
+                    newThemeContainer.appendChild(newThemeName);
+                    newThemeContainer.appendChild(addThemeBtn);
+                    form.appendChild(selector.parentElement);
+                    form.appendChild(editor);
+                    form.appendChild(newThemeContainer);
+                    updateEditor();
+                    const closeBtn = document.createElement('button');
+                    closeBtn.type = 'button';
+                    closeBtn.textContent = 'Done';
+                    closeBtn.className = 'btn-primary px-4 py-1.5 rounded-md text-sm float-right mt-4';
+                    closeBtn.onclick = () => form.parentElement.parentElement.remove();
+                    form.appendChild(closeBtn);
+                }, false);
+            }
+
+            function showAIGenerateModal(currentText, onApply) {
+                showModal('✨ Omni Assist', (form) => {
+                    const promptPresets = [
+                        { name: 'Generate', prompt: `Generate a short, engaging piece of text based on the following topic: `},
+                        { name: 'Improve', prompt: `Rewrite the following text to be more clear, professional, and engaging: `},
+                        { name: 'Summarize', prompt: `Summarize the following text into one concise sentence: `},
+                    ];
+                    const presetContainer = document.createElement('div');
+                    presetContainer.className = 'flex flex-wrap gap-2 mb-2';
+                    const promptTextarea = document.createElement('textarea');
+                    promptPresets.forEach(preset => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.textContent = preset.name;
+                        btn.className = 'btn-outline px-3 py-1 rounded-md text-xs';
+                        btn.onclick = () => promptTextarea.value = preset.name === 'Generate' ? preset.prompt : `${preset.prompt}\n\n"${currentText}"`;
+                        presetContainer.appendChild(btn);
+                    });
+                    form.appendChild(presetContainer);
+                    promptTextarea.rows = 5;
+                    promptTextarea.placeholder = 'Enter your prompt here, or use a preset above...';
+                    promptTextarea.className = 'w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm';
+                    form.appendChild(promptTextarea);
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'mt-4 p-3 bg-gray-50 rounded-md border text-sm min-h-[50px]';
+                    resultDiv.textContent = 'AI generation will appear here...';
+                    form.appendChild(resultDiv);
+                    const generateBtn = document.createElement('button');
+                    generateBtn.type = 'button';
+                    generateBtn.innerHTML = 'Generate Text';
+                    generateBtn.className = 'gemini-btn w-full px-4 py-1.5 rounded-md text-sm mt-4';
+                    generateBtn.onclick = async () => {
+                        const prompt = promptTextarea.value;
+                        if (!prompt) return;
+                        generateBtn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>';
+                        generateBtn.disabled = true;
+                        resultDiv.textContent = await callTextGeneratorAPI(prompt);
+                        generateBtn.innerHTML = 'Generate Text';
+                        generateBtn.disabled = false;
+                    };
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.className = 'flex justify-end items-center space-x-2 mt-4';
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.type = 'button';
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.className = 'btn-outline px-4 py-1.5 rounded-md text-sm';
+                    cancelBtn.onclick = () => form.parentElement.parentElement.remove();
+                    const applyBtn = document.createElement('button');
+                    applyBtn.type = 'button';
+                    applyBtn.textContent = 'Apply';
+                    applyBtn.className = 'btn-primary px-4 py-1.5 rounded-md text-sm';
+                    applyBtn.onclick = () => {
+                        const newText = resultDiv.textContent;
+                        if (newText && newText !== 'AI generation will appear here...') {
+                            onApply(newText);
+                            form.parentElement.parentElement.remove();
+                        }
+                    };
+                    form.appendChild(generateBtn);
+                    buttonContainer.appendChild(cancelBtn);
+                    buttonContainer.appendChild(applyBtn);
+                    form.appendChild(buttonContainer);
+                }, false);
+            }
+
+            // --- EVENT LISTENERS ---
+            addPageBtn.addEventListener('click', () => {
+                showModal('Add New Page', [{ type: 'text', name: 'pageName', label: 'Page Name (e.g., about)' }], true, (data) => addPageAction(data.pageName));
+            });
+            addElementBtns.forEach(btn => {
+                btn.addEventListener('click', () => addElement(btn.dataset.type));
+            });
+            canvas.addEventListener('click', (e) => {
+                if (!e.target.closest('.element-frame')) {
+                    unselectElement();
+                }
+            });
+            newProjectBtn.addEventListener('click', () => {
+                showConfirmModal('Are you sure you want to start a new project? Unsaved changes will be lost.', newProject);
+            });
+            saveProjectBtn.addEventListener('click', saveProject);
+            loadProjectBtn.addEventListener('click', () => loadProjectInput.click());
+            loadProjectInput.addEventListener('change', loadProject);
+            generateWebsiteBtn.addEventListener('click', generateWebsite);
+            geminiBuilderForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const prompt = geminiBuilderInput.value.trim();
+                if (prompt) {
+                    callBuilderAssistantAPI(prompt);
+                    geminiBuilderInput.value = '';
+                }
+            });
+
+            // --- KICK IT OFF ---
+            init();
+        });
+    })();
 </script>
 
 </body>
 </html>
-
-
 
 
